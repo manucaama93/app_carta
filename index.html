@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Juego de Magia</title>
-  <style>
+<style>
     * {
       box-sizing: border-box;
       touch-action: none;
@@ -18,12 +18,15 @@
       padding: 0;
       width: 100vw;
       height: 100vh;
-      /* FONDO CON TU CAPTURA DE PANTALLA DE INICIO */
-      background-image: url('fondo.png');
-      background-position: center;
-      background-size: cover;
+      /* CONFIGURACIÓN DE FONDO NÍTIDO */
+      background-image: url('fondo.png?v=2');
+      background-position: center top;
+      background-size: 100% 100%; /* Ajuste exacto a la resolución de la pantalla */
       background-repeat: no-repeat;
       background-color: #000;
+      /* Evita que el navegador aplique desenfoque/suavizado a los píxeles */
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
       overflow: hidden;
       display: flex;
       justify-content: center;
@@ -31,7 +34,7 @@
     }
     #carta {
       position: absolute;
-      width: 780px; /* Tamaño gigante x3 */
+      width: 780px;
       height: auto;
       will-change: transform, opacity;
       transform: translate3d(0,0,0);
