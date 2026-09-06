@@ -28,9 +28,11 @@
       position: absolute;
       width: 780px; /* Tamaño gigante x3 */
       height: auto;
-      will-change: transform;
+      will-change: transform, opacity;
       transform: translate3d(0,0,0);
-      pointer-events: auto;
+      opacity: 1;
+      /* Se añade la transición para el desvanecimiento de salida */
+      transition: opacity 0.1s ease-out; 
     }
   </style>
 </head>
@@ -48,11 +50,12 @@
     window.addEventListener('touchstart', (e) => {
       const touch = e.touches[0];
       
-      // Asegurar que la carta sea visible al tocar
+      // Reiniciar visibilidad al tocar (por si se ocultó)
       carta.style.display = 'block';
+      carta.style.opacity = '1';
+      carta.style.transition = 'none'; // Desactivar transición al mover
+
       isDragging = true;
-      
-      // Guardar el offset inicial respecto a donde pones el dedo
       startX = touch.clientX - currentX;
       startY = touch.clientY - currentY;
     }, { passive: false });
@@ -74,16 +77,29 @@
           
           const screenWidth = window.innerWidth;
           const screenHeight = window.innerHeight;
-          const borderMargin = 15; // Sensibilidad al borde según la posición del DEDO
 
-          // Ocultar si EL DEDO (no los bordes de la carta) alcanza el margen exterior
+          // NUEVA LÓGICA DE SALIDA LIMPIA
+          // 'sensibilidad' define cuánto debe acercarse EL DEDO al borde para activar el desvanecimiento.
+          // Usamos un margen de 20 píxeles.
+          const sensibilidad = 20;
+
           if (
-            touchX <= borderMargin || 
-            touchX >= screenWidth - borderMargin || 
-            touchY <= borderMargin || 
-            touchY >= screenHeight - borderMargin
+            touchX <= sensibilidad || 
+            touchX >= screenWidth - sensibilidad || 
+            touchY <= sensibilidad || 
+            touchY >= screenHeight - sensibilidad
           ) {
-            carta.style.display = 'none'; // Desaparece la carta
+            // ACTIVAR DESVANECIMIENTO DE SALIDA
+            carta.style.transition = 'opacity 0.1s ease-out'; // Volver a activar transición
+            carta.style.opacity = '0'; // Se oculta suavemente
+            
+            // Ocultar de golpe el objeto después de 100ms para asegurar la limpieza
+            setTimeout(() => {
+              if (carta.style.opacity === '0') {
+                  carta.style.display = 'none';
+              }
+            }, 100);
+
             isDragging = false;
           }
           
@@ -97,7 +113,5 @@
       isDragging = false;
     });
   </script>
-</body>
-</html>
 </body>
 </html>
