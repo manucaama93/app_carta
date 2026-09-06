@@ -56,33 +56,33 @@
     let currentX = 0, currentY = 0;
     let ticking = false;
 
-    // Variables para la animación de rebote
+    // Variables de física de rebote
     let isBouncing = false;
     let vx = 0, vy = 0;
     let bounceAnimId = null;
-    let permissionGranted = false;
+    let permissionRequested = false;
 
-    // Pedir permiso explícito a iOS para sensores de movimiento
-    function solicitarPermisoSensores() {
-      if (!permissionGranted && typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    // Pedir permisos explícitos en iOS al tocar la pantalla
+    function activarSensoresIOS() {
+      if (!permissionRequested && typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        permissionRequested = true;
         DeviceMotionEvent.requestPermission()
-          .then(response => {
-            if (response === 'granted') {
-              permissionGranted = true;
-              window.addEventListener('devicemotion', manejarAgitacion);
+          .then(state => {
+            if (state === 'granted') {
+              window.addEventListener('devicemotion', manejarAgitacion, true);
             }
           })
           .catch(console.error);
       }
     }
 
-    // --- LÓGICA DE TOCAR Y ARRASTRAR ---
+    // --- LÓGICA TÁCTIL ---
     let lastTap = 0;
 
     window.addEventListener('touchstart', (e) => {
-      solicitarPermisoSensores();
+      activarSensoresIOS();
 
-      // Doble toque rápido para activar el rebote manualmente como alternativa
+      // Alternativa: Doble toque rápido inicia el rebote si el acelerómetro está bloqueado por el SO
       const currentTime = new Date().getTime();
       const tapLength = currentTime - lastTap;
       if (tapLength < 300 && tapLength > 0) {
@@ -153,9 +153,8 @@
       isDragging = false;
     });
 
-    // --- LÓGICA DE AGITACIÓN (Shake Detection) ---
+    // --- DETECCIÓN DE AGITACIÓN ---
     let lastX = null, lastY = null, lastZ = null;
-    const SHAKE_THRESHOLD = 12; // Sensibilidad aumentada (valor más bajo = más fácil agitar)
 
     function manejarAgitacion(e) {
       if (isDragging) return;
@@ -168,7 +167,8 @@
         const deltaY = Math.abs(acc.y - lastY);
         const deltaZ = Math.abs(acc.z - lastZ);
 
-        if (deltaX + deltaY + deltaZ > SHAKE_THRESHOLD && !isBouncing) {
+        // Umbral directo de agitación
+        if ((deltaX > 10 || deltaY > 10 || deltaZ > 10) && !isBouncing) {
           iniciarRebote();
         }
       }
@@ -178,11 +178,12 @@
       lastZ = acc.z;
     }
 
-    // Escuchar directamente si la plataforma no requiere solicitud de permiso previa
+    // Para dispositivos sin restricción de permisos
     if (typeof DeviceMotionEvent === 'undefined' || typeof DeviceMotionEvent.requestPermission !== 'function') {
-      window.addEventListener('devicemotion', manejarAgitacion);
+      window.addEventListener('devicemotion', manejarAgitacion, true);
     }
 
+    // --- MOTOR DE REBOTE ---
     function iniciarRebote() {
       isBouncing = true;
       carta.style.display = 'block';
