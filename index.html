@@ -43,14 +43,29 @@
       opacity: 1;
       transition: opacity 0.1s ease-out; 
     }
+    /* Capa invisible para captura directa de permiso en iOS */
+    #capa-permiso {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9999;
+      background: transparent;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Capa invisible para activar acelerómetro en iOS -->
+  <div id="capa-permiso"></div>
 
   <img id="carta" src="carta.png" alt="Carta Doblada">
 
   <script>
     const carta = document.getElementById('carta');
+    const capaPermiso = document.getElementById('capa-permiso');
+
     let isDragging = false;
     let startX = 0, startY = 0;
     let currentX = 0, currentY = 0;
@@ -60,29 +75,31 @@
     let isBouncing = false;
     let vx = 0, vy = 0;
     let bounceAnimId = null;
-    let permissionRequested = false;
 
-    // Pedir permisos explícitos en iOS al tocar la pantalla
-    function activarSensoresIOS() {
-      if (!permissionRequested && typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        permissionRequested = true;
+    // --- CAPTURA DE PERMISO DIRECTO PARA IOS ---
+    capaPermiso.addEventListener('click', () => {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         DeviceMotionEvent.requestPermission()
-          .then(state => {
-            if (state === 'granted') {
+          .then(response => {
+            if (response === 'granted') {
               window.addEventListener('devicemotion', manejarAgitacion, true);
             }
           })
-          .catch(console.error);
+          .catch(console.error)
+          .finally(() => {
+            capaPermiso.remove(); // Elimina la capa invisible una vez pulsada
+          });
+      } else {
+        window.addEventListener('devicemotion', manejarAgitacion, true);
+        capaPermiso.remove();
       }
-    }
+    });
 
     // --- LÓGICA TÁCTIL ---
     let lastTap = 0;
 
     window.addEventListener('touchstart', (e) => {
-      activarSensoresIOS();
-
-      // Alternativa: Doble toque rápido inicia el rebote si el acelerómetro está bloqueado por el SO
+      // Doble toque rápido de respaldo por si acaso
       const currentTime = new Date().getTime();
       const tapLength = currentTime - lastTap;
       if (tapLength < 300 && tapLength > 0) {
@@ -167,8 +184,7 @@
         const deltaY = Math.abs(acc.y - lastY);
         const deltaZ = Math.abs(acc.z - lastZ);
 
-        // Umbral directo de agitación
-        if ((deltaX > 10 || deltaY > 10 || deltaZ > 10) && !isBouncing) {
+        if ((deltaX > 8 || deltaY > 8 || deltaZ > 8) && !isBouncing) {
           iniciarRebote();
         }
       }
@@ -176,11 +192,6 @@
       lastX = acc.x;
       lastY = acc.y;
       lastZ = acc.z;
-    }
-
-    // Para dispositivos sin restricción de permisos
-    if (typeof DeviceMotionEvent === 'undefined' || typeof DeviceMotionEvent.requestPermission !== 'function') {
-      window.addEventListener('devicemotion', manejarAgitacion, true);
     }
 
     // --- MOTOR DE REBOTE ---
