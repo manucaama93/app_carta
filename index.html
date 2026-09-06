@@ -73,6 +73,9 @@
     let currentX = 0, currentY = 0;
     let ticking = false;
 
+    // Variables para comprobar la posición real de salida
+    let lastTouchX = 0, lastTouchY = 0;
+
     // Activar acelerómetro en iOS
     capaPermiso.addEventListener('click', () => {
       if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -108,6 +111,8 @@
     // CONTROL TÁCTIL
     window.addEventListener('touchstart', (e) => {
       const touch = e.touches[0];
+      lastTouchX = touch.clientX;
+      lastTouchY = touch.clientY;
 
       carta.style.display = 'block';
       carta.style.opacity = '1';
@@ -123,11 +128,11 @@
       e.preventDefault();
 
       const touch = e.touches[0];
-      const touchX = touch.clientX;
-      const touchY = touch.clientY;
+      lastTouchX = touch.clientX;
+      lastTouchY = touch.clientY;
 
-      currentX = touchX - startX;
-      currentY = touchY - startY;
+      currentX = touch.clientX - startX;
+      currentY = touch.clientY - startY;
 
       if (!ticking) {
         requestAnimationFrame(() => {
@@ -135,14 +140,13 @@
           
           const screenWidth = window.innerWidth;
           const screenHeight = window.innerHeight;
-          // Sensibilidad de 70px para abarcar bien los márgenes
-          const sensibilidad = 70;
+          const sensibilidad = 60; // Detección precisa de los bordes físicos de la pantalla
 
           if (
-            touchX <= sensibilidad || 
-            touchX >= screenWidth - sensibilidad || 
-            touchY <= sensibilidad || 
-            touchY >= screenHeight - sensibilidad
+            lastTouchX <= sensibilidad || 
+            lastTouchX >= screenWidth - sensibilidad || 
+            lastTouchY <= sensibilidad || 
+            lastTouchY >= screenHeight - sensibilidad
           ) {
             ocultarCarta();
           }
@@ -153,17 +157,28 @@
       }
     }, { passive: false });
 
-    // Si sueltas el dedo y la carta está desplazada más de 120px del centro, la esconde
+    // COMPROBACIÓN EN TOUCHEND
     window.addEventListener('touchend', () => {
-      if (isDragging) {
-        if (Math.abs(currentX) > 120 || Math.abs(currentY) > 120) {
-          ocultarCarta();
-        }
+      if (!isDragging) return;
+
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const sensibilidad = 60;
+
+      // Solo oculta al soltar si el último toque quedó pegado a las orillas
+      if (
+        lastTouchX <= sensibilidad || 
+        lastTouchX >= screenWidth - sensibilidad || 
+        lastTouchY <= sensibilidad || 
+        lastTouchY >= screenHeight - sensibilidad
+      ) {
+        ocultarCarta();
       }
+
       isDragging = false;
     });
 
-    // SENSOR DE MOVIMIENTO (Aparición limpia al agitar)
+    // SENSOR DE MOVIMIENTO (Aparición y reseteo exacto al centro)
     let lastX = null, lastY = null, lastZ = null;
 
     function manejarAgitacion(e) {
@@ -180,8 +195,12 @@
         const fuerza = Math.abs(deltaX) + Math.abs(deltaY) + Math.abs(deltaZ);
 
         if (fuerza > 12) {
+          // Se fuerzan las coordenadas a 0 para que la carta se considere centrada
           currentX = 0;
           currentY = 0;
+          startX = 0;
+          startY = 0;
+          
           carta.style.transform = `translate3d(0px, 0px, 0)`;
           carta.style.display = 'block';
           carta.style.opacity = '1';
