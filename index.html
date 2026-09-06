@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -541,17 +540,3 @@
 
 </body>
 </html>
-```
-
-**El cambio clave** es que ahora se utiliza la posición real del dedo:
-
-```js
-if (posX <= 0) {
-    ocultarCarta();
-    return true;
-}
-```
-
-Así que puedes arrastrar la carta hacia la izquierda y, **en el momento en que tu pulgar cruza el borde de la pantalla, la carta desaparece**, aunque todavía quede media carta visible.
-
-Si lo que quieres es el efecto más natural para un juego de magia, también puedo hacer que **la carta desaparezca justo cuando el borde izquierdo de la carta cruce la pantalla**, en lugar de hacerlo cuando salga el dedo.
