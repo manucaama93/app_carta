@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Juego de Magia</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #000;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #carta {
+      position: absolute;
+      /* TAMAÑO X3: Ajustado a 780px */
+      width: 780px; 
+      height: auto;
+      will-change: transform;
+      transform: translate3d(0,0,0);
+    }
+  </style>
+</head>
+<body>
+
+  <img id="carta" src="carta.png" alt="Carta Doblada">
+
+  <script>
+    const carta = document.getElementById('carta');
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let currentX = 0, currentY = 0;
+    let ticking = false;
+
+    window.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      const rect = carta.getBoundingClientRect();
+      
+      if (
+        touch.clientX >= rect.left &&
+        touch.clientX <= rect.right &&
+        touch.clientY >= rect.top &&
+        touch.clientY <= rect.bottom
+      ) {
+        isDragging = true;
+        startX = touch.clientX - currentX;
+        startY = touch.clientY - currentY;
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+
+      const touch = e.touches[0];
+      currentX = touch.clientX - startX;
+      currentY = touch.clientY - startY;
+
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+          
+          const rect = carta.getBoundingClientRect();
+          const margin = 20; // Sensibilidad del borde
+
+          // Se oculta en cuanto toque cualquier extremo del borde
+          if (
+            rect.left <= margin || 
+            rect.right >= window.innerWidth - margin || 
+            rect.top <= margin || 
+            rect.bottom >= window.innerHeight - margin
+          ) {
+            carta.style.display = 'none';
+            isDragging = false;
+          }
+          
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+  </script>
+</body>
+</html>
