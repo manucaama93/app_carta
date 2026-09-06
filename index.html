@@ -33,16 +33,20 @@
       display: flex;
       justify-content: center;
       align-items: center;
-    }
-    #carta {
-      position: absolute;
-      width: 780px;
-      height: auto;
-      will-change: transform, opacity;
-      transform: translate3d(0,0,0);
-      opacity: 1;
-      transition: opacity 0.1s ease-out; 
-    }
+#carta {
+  position: absolute;
+  width: 780px;
+  height: auto;
+  will-change: transform, opacity;
+  transform: translate3d(0,0,0);
+  opacity: 1;
+  transition: opacity 0.1s ease-out;
+
+  /* EVITA EL MENÚ EMERGENTE Y SELECCIÓN EN IOS */
+  -webkit-touch-callout: none; /* Desactiva el menú contextual de guardar/copiar */
+  -webkit-user-select: none;   /* Desactiva la selección de texto o imagen */
+  pointer-events: auto;        /* Mantiene la captura de eventos táctiles */
+}
     #capa-permiso {
       position: fixed;
       top: 0;
