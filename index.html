@@ -73,7 +73,7 @@
     let currentX = 0, currentY = 0;
     let ticking = false;
 
-    // Física de movimiento (velocidad y fricción)
+    // Física de movimiento
     let isBouncing = false;
     let vx = 0, vy = 0;
     let bounceAnimId = null;
@@ -98,11 +98,12 @@
       }
     });
 
-    // PARAR ANIMACIONES Y REFRESCAR ESTADO
+    // DETENER CUALQUIER ANIMACIÓN O FÍSICA
     function detenerAnimaciones() {
-      if (isBouncing) {
-        isBouncing = false;
+      isBouncing = false;
+      if (bounceAnimId) {
         cancelAnimationFrame(bounceAnimId);
+        bounceAnimId = null;
       }
       vx = 0;
       vy = 0;
@@ -110,18 +111,20 @@
 
     // CONTROL TÁCTIL (Touch Events)
     window.addEventListener('touchstart', (e) => {
+      // 1. Apagar la física del tirón
       detenerAnimaciones();
+
+      // 2. Marcar arrastre activo para que la agitación no moleste
+      isDragging = true;
 
       const touch = e.touches[0];
 
-      // Reaparecer carta si estaba oculta
+      // 3. Restaurar visibilidad
       carta.style.display = 'block';
       carta.style.opacity = '1';
       carta.style.transition = 'none';
 
-      isDragging = true;
-
-      // Calculamos la distancia exacta entre el dedo y la posición actual del centro de la carta
+      // 4. Calcular el desfase exacto respecto al toque en ese instante preciso
       touchOffsetX = touch.clientX - currentX;
       touchOffsetY = touch.clientY - currentY;
     }, { passive: false });
@@ -132,7 +135,7 @@
 
       const touch = e.touches[0];
 
-      // Mantenemos la posición relativa exacta al dedo
+      // La posición de la carta sigue estrictamente la mano
       currentX = touch.clientX - touchOffsetX;
       currentY = touch.clientY - touchOffsetY;
 
@@ -146,7 +149,7 @@
           const screenHeight = window.innerHeight;
           const sensibilidad = 20;
 
-          // Lógica para ocultar al arrastrar a las esquinas/bordes
+          // Salida por los bordes
           if (
             touchX <= sensibilidad || 
             touchX >= screenWidth - sensibilidad || 
@@ -179,6 +182,7 @@
     let lastX = null, lastY = null, lastZ = null;
 
     function manejarAgitacion(e) {
+      // SI ESTAMOS ARRASTRANDO, IGNORAR EL SENSOR
       if (isDragging) return;
 
       const acc = e.accelerationIncludingGravity || e.acceleration;
@@ -206,6 +210,8 @@
 
     // FÍSICA
     function aplicarImpulso(impulsX, impulsY) {
+      if (isDragging) return;
+
       carta.style.display = 'block';
       carta.style.opacity = '1';
       carta.style.transition = 'none';
@@ -224,7 +230,7 @@
     }
 
     function animarFisica() {
-      if (!isBouncing) return;
+      if (!isBouncing || isDragging) return;
 
       vx *= FRICCION;
       vy *= FRICCION;
@@ -235,7 +241,7 @@
       const maxEdgeX = (window.innerWidth / 2);
       const maxEdgeY = (window.innerHeight / 2);
 
-      // Rebotes en los bordes
+      // Rebotes
       if (currentX >= maxEdgeX) {
         currentX = maxEdgeX;
         vx = -vx * 0.7;
