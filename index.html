@@ -1,17 +1,25 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <meta name="viewport"
+    content="width=device-width,
+    initial-scale=1.0,
+    maximum-scale=1.0,
+    user-scalable=no,
+    viewport-fit=cover">
+
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <title>TV</title>
 
   <!-- ICONO PARA LA PANTALLA DE INICIO DE IOS -->
   <link rel="apple-touch-icon" href="icon.png?v=2">
 
   <style>
+
     * {
       box-sizing: border-box;
       touch-action: none;
@@ -19,58 +27,87 @@
       -webkit-user-select: none;
     }
 
-    body, html {
+    html,
+    body {
       margin: 0;
       padding: 0;
+
       width: 100vw;
       height: 100vh;
+
       background-image: url('fondo.png?v=2');
       background-position: center top;
       background-size: 100% 100%;
       background-repeat: no-repeat;
       background-color: #000;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
+
       overflow: hidden;
+
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
     #carta {
+
       position: absolute;
+
       width: 780px;
       height: auto;
+
       will-change: transform, opacity;
+
       transform: translate3d(0, 0, 0);
+
       opacity: 1;
+
       transition: opacity 0.1s ease-out;
 
       -webkit-touch-callout: none;
       -webkit-user-select: none;
+
       pointer-events: auto;
     }
 
     #capa-permiso {
+
       position: fixed;
+
       top: 0;
       left: 0;
+
       width: 100vw;
       height: 100vh;
+
       z-index: 9999;
+
       background: transparent;
     }
+
   </style>
 </head>
+
 
 <body>
 
   <div id="capa-permiso"></div>
-  <img id="carta" src="carta.png" alt="Carta Doblada">
+
+  <img
+    id="carta"
+    src="carta.png"
+    alt="Carta Doblada"
+  >
+
 
   <script>
+
     const carta = document.getElementById('carta');
     const capaPermiso = document.getElementById('capa-permiso');
+
+
+    // =========================================================
+    // VARIABLES
+    // =========================================================
 
     let isDragging = false;
 
@@ -82,12 +119,16 @@
 
     let ticking = false;
 
-    // Última posición registrada del toque
     let lastTouchX = 0;
     let lastTouchY = 0;
 
-    // Física de movimiento
+    // Posición anterior del dedo
+    let previousTouchX = 0;
+    let previousTouchY = 0;
+
+    // Física
     let isBouncing = false;
+
     let vx = 0;
     let vy = 0;
 
@@ -97,7 +138,7 @@
 
 
     // =========================================================
-    // PERMISOS EN IOS
+    // PERMISOS IOS
     // =========================================================
 
     capaPermiso.addEventListener('click', () => {
@@ -108,20 +149,27 @@
       ) {
 
         DeviceMotionEvent.requestPermission()
+
           .then(response => {
 
             if (response === 'granted') {
+
               window.addEventListener(
                 'devicemotion',
                 manejarAgitacion,
                 true
               );
+
             }
 
           })
+
           .catch(console.error)
+
           .finally(() => {
+
             capaPermiso.remove();
+
           });
 
       } else {
@@ -133,7 +181,9 @@
         );
 
         capaPermiso.remove();
+
       }
+
     });
 
 
@@ -145,50 +195,17 @@
 
       isBouncing = false;
 
-      if (bounceAnimId) {
+      if (bounceAnimId !== null) {
+
         cancelAnimationFrame(bounceAnimId);
+
         bounceAnimId = null;
+
       }
 
       vx = 0;
       vy = 0;
-    }
 
-
-    // =========================================================
-    // COMPROBAR SI EL DEDO SALE DE LA PANTALLA
-    // =========================================================
-
-    function comprobarSalida(posX, posY) {
-
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
-
-      // Borde izquierdo
-      if (posX <= 0) {
-        ocultarCarta();
-        return true;
-      }
-
-      // Borde derecho
-      if (posX >= screenWidth) {
-        ocultarCarta();
-        return true;
-      }
-
-      // Borde superior
-      if (posY <= 0) {
-        ocultarCarta();
-        return true;
-      }
-
-      // Borde inferior
-      if (posY >= screenHeight) {
-        ocultarCarta();
-        return true;
-      }
-
-      return false;
     }
 
 
@@ -198,65 +215,169 @@
 
     function ocultarCarta() {
 
-      carta.style.transition = 'opacity 0.1s ease-out';
-      carta.style.opacity = '0';
-
       isDragging = false;
 
-      // Detener cualquier rebote
       isBouncing = false;
-
-      if (bounceAnimId) {
-        cancelAnimationFrame(bounceAnimId);
-        bounceAnimId = null;
-      }
 
       vx = 0;
       vy = 0;
 
+
+      if (bounceAnimId !== null) {
+
+        cancelAnimationFrame(bounceAnimId);
+
+        bounceAnimId = null;
+
+      }
+
+
+      carta.style.transition =
+        'opacity 0.1s ease-out';
+
+      carta.style.opacity = '0';
+
+
       setTimeout(() => {
 
         if (carta.style.opacity === '0') {
+
           carta.style.display = 'none';
+
         }
 
       }, 100);
+
     }
 
 
     // =========================================================
-    // CONTROL TÁCTIL - INICIO
+    // COMPROBAR SI HAY QUE HACER DESAPARECER LA CARTA
+    // =========================================================
+
+    function comprobarSalida(x, y) {
+
+      const ancho = window.innerWidth;
+      const alto = window.innerHeight;
+
+
+      /*
+       * PRIMERA CONDICIÓN:
+       *
+       * El dedo ha llegado al borde izquierdo.
+       *
+       * Usamos <= 3 en lugar de <= 0 porque Safari
+       * puede dejar de enviar eventos justo antes
+       * de que el dedo salga físicamente de la pantalla.
+       */
+
+      if (x <= 3) {
+
+        ocultarCarta();
+
+        return true;
+
+      }
+
+
+      /*
+       * Borde derecho
+       */
+
+      if (x >= ancho - 3) {
+
+        ocultarCarta();
+
+        return true;
+
+      }
+
+
+      /*
+       * Borde superior
+       */
+
+      if (y <= 3) {
+
+        ocultarCarta();
+
+        return true;
+
+      }
+
+
+      /*
+       * Borde inferior
+       */
+
+      if (y >= alto - 3) {
+
+        ocultarCarta();
+
+        return true;
+
+      }
+
+
+      return false;
+
+    }
+
+
+    // =========================================================
+    // TOUCH START
     // =========================================================
 
     window.addEventListener(
       'touchstart',
       (e) => {
 
+        e.preventDefault();
+
         detenerAnimaciones();
 
+
         const touch = e.touches[0];
+
 
         lastTouchX = touch.clientX;
         lastTouchY = touch.clientY;
 
-        // Volver a mostrar la carta
+        previousTouchX = touch.clientX;
+        previousTouchY = touch.clientY;
+
+
         carta.style.display = 'block';
+
         carta.style.opacity = '1';
+
         carta.style.transition = 'none';
+
 
         isDragging = true;
 
-        // Distancia entre el dedo y la carta
-        touchOffsetX = touch.clientX - currentX;
-        touchOffsetY = touch.clientY - currentY;
+
+        /*
+         * Calculamos la distancia entre el dedo
+         * y la posición de la carta.
+         */
+
+        touchOffsetX =
+          touch.clientX - currentX;
+
+        touchOffsetY =
+          touch.clientY - currentY;
 
       },
-      { passive: false }
+
+      {
+        passive: false
+      }
     );
 
 
     // =========================================================
-    // CONTROL TÁCTIL - MOVIMIENTO
+    // TOUCH MOVE
     // =========================================================
 
     window.addEventListener(
@@ -265,50 +386,164 @@
 
         if (!isDragging) return;
 
+
         e.preventDefault();
+
 
         const touch = e.touches[0];
 
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
 
-        // Actualizar posición de la carta
-        currentX = touch.clientX - touchOffsetX;
-        currentY = touch.clientY - touchOffsetY;
+        const x = touch.clientX;
+        const y = touch.clientY;
 
+
+        /*
+         * Guardamos las posiciones.
+         */
+
+        lastTouchX = x;
+        lastTouchY = y;
+
+
+        /*
+         * Calculamos hacia dónde se está moviendo
+         * el dedo.
+         */
+
+        const movimientoX =
+          x - previousTouchX;
+
+
+        const movimientoY =
+          y - previousTouchY;
+
+
+        /*
+         * =====================================================
+         * MUY IMPORTANTE
+         *
+         * Si el dedo está llegando al borde izquierdo
+         * mientras se mueve hacia la izquierda,
+         * hacemos desaparecer la carta.
+         * =====================================================
+         */
+
+        if (
+          x <= 3 &&
+          movimientoX <= 0
+        ) {
+
+          ocultarCarta();
+
+          return;
+
+        }
+
+
+        /*
+         * Lo mismo para el resto de bordes.
+         */
+
+        if (
+          x >= window.innerWidth - 3 &&
+          movimientoX >= 0
+        ) {
+
+          ocultarCarta();
+
+          return;
+
+        }
+
+
+        if (
+          y <= 3 &&
+          movimientoY <= 0
+        ) {
+
+          ocultarCarta();
+
+          return;
+
+        }
+
+
+        if (
+          y >= window.innerHeight - 3 &&
+          movimientoY >= 0
+        ) {
+
+          ocultarCarta();
+
+          return;
+
+        }
+
+
+        /*
+         * Actualizamos la posición anterior.
+         */
+
+        previousTouchX = x;
+        previousTouchY = y;
+
+
+        /*
+         * Nueva posición de la carta.
+         */
+
+        currentX =
+          x - touchOffsetX;
+
+        currentY =
+          y - touchOffsetY;
+
+
+        /*
+         * Actualizamos la pantalla usando
+         * requestAnimationFrame.
+         */
 
         if (!ticking) {
 
           ticking = true;
 
+
           requestAnimationFrame(() => {
 
-            // Comprobar primero si el dedo salió de la pantalla
-            const haSalido = comprobarSalida(
-              lastTouchX,
-              lastTouchY
-            );
+            if (!isDragging) {
 
-            // Si no salió, seguimos moviendo la carta
-            if (!haSalido) {
+              ticking = false;
 
-              carta.style.transform =
-                `translate3d(${currentX}px, ${currentY}px, 0)`;
+              return;
 
             }
+
+
+            carta.style.transform =
+              `translate3d(
+                ${currentX}px,
+                ${currentY}px,
+                0
+              )`;
+
 
             ticking = false;
 
           });
+
         }
 
       },
-      { passive: false }
+
+      {
+        passive: false
+      }
     );
 
 
     // =========================================================
-    // CONTROL TÁCTIL - FINAL
+    // TOUCH END
     // =========================================================
 
     window.addEventListener(
@@ -317,11 +552,30 @@
 
         if (!isDragging) return;
 
-        // Comprobación final
+
+        /*
+         * Última comprobación.
+         */
+
         comprobarSalida(
           lastTouchX,
           lastTouchY
         );
+
+
+        isDragging = false;
+
+      }
+    );
+
+
+    // =========================================================
+    // TOUCH CANCEL
+    // =========================================================
+
+    window.addEventListener(
+      'touchcancel',
+      () => {
 
         isDragging = false;
 
@@ -342,18 +596,26 @@
 
       if (isDragging) return;
 
+
       const acc =
         e.accelerationIncludingGravity ||
         e.acceleration;
+
 
       if (!acc) return;
 
 
       if (lastX !== null) {
 
-        const deltaX = acc.x - lastX;
-        const deltaY = acc.y - lastY;
-        const deltaZ = acc.z - lastZ;
+        const deltaX =
+          acc.x - lastX;
+
+        const deltaY =
+          acc.y - lastY;
+
+        const deltaZ =
+          acc.z - lastZ;
+
 
         const fuerza =
           Math.abs(deltaX) +
@@ -366,6 +628,7 @@
           const dirX =
             deltaX > 0 ? -1 : 1;
 
+
           const dirY =
             deltaY > 0 ? 1 : -1;
 
@@ -374,13 +637,16 @@
             dirX * fuerza * 0.8,
             dirY * fuerza * 0.8
           );
+
         }
+
       }
 
 
       lastX = acc.x;
       lastY = acc.y;
       lastZ = acc.z;
+
     }
 
 
@@ -388,13 +654,20 @@
     // APLICAR IMPULSO
     // =========================================================
 
-    function aplicarImpulso(impulsX, impulsY) {
+    function aplicarImpulso(
+      impulsX,
+      impulsY
+    ) {
 
       if (isDragging) return;
 
+
       carta.style.display = 'block';
+
       carta.style.opacity = '1';
+
       carta.style.transition = 'none';
+
 
       vx += impulsX;
       vy += impulsY;
@@ -402,10 +675,12 @@
 
       const maxVel = 35;
 
+
       vx = Math.max(
         -maxVel,
         Math.min(maxVel, vx)
       );
+
 
       vy = Math.max(
         -maxVel,
@@ -418,7 +693,9 @@
         isBouncing = true;
 
         animarFisica();
+
       }
+
     }
 
 
@@ -428,7 +705,14 @@
 
     function animarFisica() {
 
-      if (!isBouncing || isDragging) return;
+      if (
+        !isBouncing ||
+        isDragging
+      ) {
+
+        return;
+
+      }
 
 
       vx *= FRICCION;
@@ -439,45 +723,60 @@
       currentY += vy;
 
 
-      // Límites del movimiento
       const maxEdgeX =
         window.innerWidth / 2;
+
 
       const maxEdgeY =
         window.innerHeight / 2;
 
 
       // Rebote horizontal
+
       if (currentX >= maxEdgeX) {
 
         currentX = maxEdgeX;
+
         vx = -vx * 0.7;
 
-      } else if (currentX <= -maxEdgeX) {
+      }
+
+      else if (currentX <= -maxEdgeX) {
 
         currentX = -maxEdgeX;
+
         vx = -vx * 0.7;
+
       }
 
 
       // Rebote vertical
+
       if (currentY >= maxEdgeY) {
 
         currentY = maxEdgeY;
+
         vy = -vy * 0.7;
 
-      } else if (currentY <= -maxEdgeY) {
+      }
+
+      else if (currentY <= -maxEdgeY) {
 
         currentY = -maxEdgeY;
+
         vy = -vy * 0.7;
+
       }
 
 
       carta.style.transform =
-        `translate3d(${currentX}px, ${currentY}px, 0)`;
+        `translate3d(
+          ${currentX}px,
+          ${currentY}px,
+          0
+        )`;
 
 
-      // Detener cuando la velocidad sea muy pequeña
       if (
         Math.abs(vx) < 0.2 &&
         Math.abs(vy) < 0.2
@@ -489,15 +788,18 @@
         vy = 0;
 
         return;
+
       }
 
 
       bounceAnimId =
-        requestAnimationFrame(animarFisica);
+        requestAnimationFrame(
+          animarFisica
+        );
+
     }
 
   </script>
 
 </body>
 </html>
-```
