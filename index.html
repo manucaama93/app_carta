@@ -1,25 +1,16 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-
-  <meta name="viewport"
-    content="width=device-width,
-    initial-scale=1.0,
-    maximum-scale=1.0,
-    user-scalable=no,
-    viewport-fit=cover">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
   <title>TV</title>
 
-  <!-- ICONO PARA LA PANTALLA DE INICIO DE IOS -->
   <link rel="apple-touch-icon" href="icon.png?v=2">
 
   <style>
-
     * {
       box-sizing: border-box;
       touch-action: none;
@@ -27,11 +18,9 @@
       -webkit-user-select: none;
     }
 
-    html,
-    body {
+    body, html {
       margin: 0;
       padding: 0;
-
       width: 100vw;
       height: 100vh;
 
@@ -41,6 +30,9 @@
       background-repeat: no-repeat;
       background-color: #000;
 
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+
       overflow: hidden;
 
       display: flex;
@@ -49,9 +41,7 @@
     }
 
     #carta {
-
       position: absolute;
-
       width: 780px;
       height: auto;
 
@@ -70,9 +60,7 @@
     }
 
     #capa-permiso {
-
       position: fixed;
-
       top: 0;
       left: 0;
 
@@ -83,10 +71,8 @@
 
       background: transparent;
     }
-
   </style>
 </head>
-
 
 <body>
 
@@ -98,7 +84,6 @@
     alt="Carta Doblada"
   >
 
-
   <script>
 
     const carta = document.getElementById('carta');
@@ -106,7 +91,7 @@
 
 
     // =========================================================
-    // VARIABLES
+    // VARIABLES DE MOVIMIENTO
     // =========================================================
 
     let isDragging = false;
@@ -122,11 +107,11 @@
     let lastTouchX = 0;
     let lastTouchY = 0;
 
-    // Posición anterior del dedo
-    let previousTouchX = 0;
-    let previousTouchY = 0;
 
-    // Física
+    // =========================================================
+    // FÍSICA
+    // =========================================================
+
     let isBouncing = false;
 
     let vx = 0;
@@ -195,7 +180,7 @@
 
       isBouncing = false;
 
-      if (bounceAnimId !== null) {
+      if (bounceAnimId) {
 
         cancelAnimationFrame(bounceAnimId);
 
@@ -223,7 +208,7 @@
       vy = 0;
 
 
-      if (bounceAnimId !== null) {
+      if (bounceAnimId) {
 
         cancelAnimationFrame(bounceAnimId);
 
@@ -252,26 +237,25 @@
 
 
     // =========================================================
-    // COMPROBAR SI HAY QUE HACER DESAPARECER LA CARTA
+    // COMPROBAR BORDE
     // =========================================================
 
-    function comprobarSalida(x, y) {
+    function comprobarSalida(posX, posY) {
 
-      const ancho = window.innerWidth;
-      const alto = window.innerHeight;
-
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
 
       /*
-       * PRIMERA CONDICIÓN:
+       * IMPORTANTE:
        *
-       * El dedo ha llegado al borde izquierdo.
+       * Aquí comprobamos solamente la posición del DEDO.
        *
-       * Usamos <= 3 en lugar de <= 0 porque Safari
-       * puede dejar de enviar eventos justo antes
-       * de que el dedo salga físicamente de la pantalla.
+       * No limitamos ni modificamos la posición de la carta.
        */
 
-      if (x <= 3) {
+
+      // Izquierda
+      if (posX <= 0) {
 
         ocultarCarta();
 
@@ -280,11 +264,8 @@
       }
 
 
-      /*
-       * Borde derecho
-       */
-
-      if (x >= ancho - 3) {
+      // Derecha
+      if (posX >= screenWidth) {
 
         ocultarCarta();
 
@@ -293,11 +274,8 @@
       }
 
 
-      /*
-       * Borde superior
-       */
-
-      if (y <= 3) {
+      // Arriba
+      if (posY <= 0) {
 
         ocultarCarta();
 
@@ -306,11 +284,8 @@
       }
 
 
-      /*
-       * Borde inferior
-       */
-
-      if (y >= alto - 3) {
+      // Abajo
+      if (posY >= screenHeight) {
 
         ocultarCarta();
 
@@ -332,35 +307,21 @@
       'touchstart',
       (e) => {
 
-        e.preventDefault();
-
         detenerAnimaciones();
 
-
         const touch = e.touches[0];
-
 
         lastTouchX = touch.clientX;
         lastTouchY = touch.clientY;
 
-        previousTouchX = touch.clientX;
-        previousTouchY = touch.clientY;
-
 
         carta.style.display = 'block';
-
         carta.style.opacity = '1';
-
         carta.style.transition = 'none';
 
 
         isDragging = true;
 
-
-        /*
-         * Calculamos la distancia entre el dedo
-         * y la posición de la carta.
-         */
 
         touchOffsetX =
           touch.clientX - currentX;
@@ -369,7 +330,6 @@
           touch.clientY - currentY;
 
       },
-
       {
         passive: false
       }
@@ -386,123 +346,26 @@
 
         if (!isDragging) return;
 
-
         e.preventDefault();
 
 
         const touch = e.touches[0];
 
 
-        const x = touch.clientX;
-        const y = touch.clientY;
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
 
 
-        /*
-         * Guardamos las posiciones.
-         */
-
-        lastTouchX = x;
-        lastTouchY = y;
-
-
-        /*
-         * Calculamos hacia dónde se está moviendo
-         * el dedo.
-         */
-
-        const movimientoX =
-          x - previousTouchX;
-
-
-        const movimientoY =
-          y - previousTouchY;
-
-
-        /*
-         * =====================================================
-         * MUY IMPORTANTE
-         *
-         * Si el dedo está llegando al borde izquierdo
-         * mientras se mueve hacia la izquierda,
-         * hacemos desaparecer la carta.
-         * =====================================================
-         */
-
-        if (
-          x <= 3 &&
-          movimientoX <= 0
-        ) {
-
-          ocultarCarta();
-
-          return;
-
-        }
-
-
-        /*
-         * Lo mismo para el resto de bordes.
-         */
-
-        if (
-          x >= window.innerWidth - 3 &&
-          movimientoX >= 0
-        ) {
-
-          ocultarCarta();
-
-          return;
-
-        }
-
-
-        if (
-          y <= 3 &&
-          movimientoY <= 0
-        ) {
-
-          ocultarCarta();
-
-          return;
-
-        }
-
-
-        if (
-          y >= window.innerHeight - 3 &&
-          movimientoY >= 0
-        ) {
-
-          ocultarCarta();
-
-          return;
-
-        }
-
-
-        /*
-         * Actualizamos la posición anterior.
-         */
-
-        previousTouchX = x;
-        previousTouchY = y;
-
-
-        /*
-         * Nueva posición de la carta.
-         */
+        // =====================================================
+        // PRIMERO MOVEMOS LA CARTA
+        // =====================================================
 
         currentX =
-          x - touchOffsetX;
+          touch.clientX - touchOffsetX;
 
         currentY =
-          y - touchOffsetY;
+          touch.clientY - touchOffsetY;
 
-
-        /*
-         * Actualizamos la pantalla usando
-         * requestAnimationFrame.
-         */
 
         if (!ticking) {
 
@@ -511,14 +374,11 @@
 
           requestAnimationFrame(() => {
 
-            if (!isDragging) {
-
-              ticking = false;
-
-              return;
-
-            }
-
+            /*
+             * ESTA ES LA PARTE IMPORTANTE:
+             *
+             * Primero se actualiza la carta.
+             */
 
             carta.style.transform =
               `translate3d(
@@ -528,6 +388,23 @@
               )`;
 
 
+            /*
+             * DESPUÉS comprobamos si el dedo
+             * ha llegado al borde.
+             */
+
+            if (
+              lastTouchX <= 0 ||
+              lastTouchX >= window.innerWidth ||
+              lastTouchY <= 0 ||
+              lastTouchY >= window.innerHeight
+            ) {
+
+              ocultarCarta();
+
+            }
+
+
             ticking = false;
 
           });
@@ -535,7 +412,6 @@
         }
 
       },
-
       {
         passive: false
       }
@@ -552,10 +428,6 @@
 
         if (!isDragging) return;
 
-
-        /*
-         * Última comprobación.
-         */
 
         comprobarSalida(
           lastTouchX,
@@ -627,7 +499,6 @@
 
           const dirX =
             deltaX > 0 ? -1 : 1;
-
 
           const dirY =
             deltaY > 0 ? 1 : -1;
@@ -726,7 +597,6 @@
       const maxEdgeX =
         window.innerWidth / 2;
 
-
       const maxEdgeY =
         window.innerHeight / 2;
 
@@ -803,3 +673,4 @@
 
 </body>
 </html>
+```
