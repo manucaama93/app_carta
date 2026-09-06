@@ -56,24 +56,45 @@
     let currentX = 0, currentY = 0;
     let ticking = false;
 
-    // Variables para la animación de rebote (física)
+    // Variables para la animación de rebote
     let isBouncing = false;
-    let vx = 0, vy = 0; // Velocidad X e Y
+    let vx = 0, vy = 0;
     let bounceAnimId = null;
+    let permissionGranted = false;
 
-    // --- LÓGICA DE TOCAR Y ARRASTRAR (Gesto táctil) ---
+    // Pedir permiso explícito a iOS para sensores de movimiento
+    function solicitarPermisoSensores() {
+      if (!permissionGranted && typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              permissionGranted = true;
+              window.addEventListener('devicemotion', manejarAgitacion);
+            }
+          })
+          .catch(console.error);
+      }
+    }
+
+    // --- LÓGICA DE TOCAR Y ARRASTRAR ---
+    let lastTap = 0;
+
     window.addEventListener('touchstart', (e) => {
+      solicitarPermisoSensores();
+
+      // Doble toque rápido para activar el rebote manualmente como alternativa
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      if (tapLength < 300 && tapLength > 0) {
+        if (!isBouncing) iniciarRebote();
+      }
+      lastTap = currentTime;
+
       const touch = e.touches[0];
       
-      // Si la carta estaba rebotando por agitación, detiene el rebote al tocarla
       if (isBouncing) {
         isBouncing = false;
         cancelAnimationFrame(bounceAnimId);
-      }
-
-      // Solicitar permisos de acelerómetro en iOS (necesario a partir de iOS 13)
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission().catch(() => {});
       }
 
       carta.style.display = 'block';
@@ -104,7 +125,6 @@
           const screenHeight = window.innerHeight;
           const sensibilidad = 20;
 
-          // Desvanecer al llegar al borde
           if (
             touchX <= sensibilidad || 
             touchX >= screenWidth - sensibilidad || 
@@ -135,12 +155,12 @@
 
     // --- LÓGICA DE AGITACIÓN (Shake Detection) ---
     let lastX = null, lastY = null, lastZ = null;
-    const SHAKE_THRESHOLD = 18; // Sensibilidad de la agitación
+    const SHAKE_THRESHOLD = 12; // Sensibilidad aumentada (valor más bajo = más fácil agitar)
 
-    window.addEventListener('devicemotion', (e) => {
-      if (isDragging) return; // No rebotar si la estás agarrando con el dedo
+    function manejarAgitacion(e) {
+      if (isDragging) return;
 
-      const acc = e.accelerationIncludingGravity;
+      const acc = e.accelerationIncludingGravity || e.acceleration;
       if (!acc) return;
 
       if (lastX !== null) {
@@ -148,7 +168,6 @@
         const deltaY = Math.abs(acc.y - lastY);
         const deltaZ = Math.abs(acc.z - lastZ);
 
-        // Si la aceleración supera el umbral, activamos el rebote
         if (deltaX + deltaY + deltaZ > SHAKE_THRESHOLD && !isBouncing) {
           iniciarRebote();
         }
@@ -157,7 +176,12 @@
       lastX = acc.x;
       lastY = acc.y;
       lastZ = acc.z;
-    });
+    }
+
+    // Escuchar directamente si la plataforma no requiere solicitud de permiso previa
+    if (typeof DeviceMotionEvent === 'undefined' || typeof DeviceMotionEvent.requestPermission !== 'function') {
+      window.addEventListener('devicemotion', manejarAgitacion);
+    }
 
     function iniciarRebote() {
       isBouncing = true;
@@ -165,9 +189,8 @@
       carta.style.opacity = '1';
       carta.style.transition = 'none';
 
-      // Asignar una velocidad inicial aleatoria hacia alguna dirección
-      vx = (Math.random() > 0.5 ? 1 : -1) * (12 + Math.random() * 8);
-      vy = (Math.random() > 0.5 ? 1 : -1) * (12 + Math.random() * 8);
+      vx = (Math.random() > 0.5 ? 1 : -1) * (14 + Math.random() * 6);
+      vy = (Math.random() > 0.5 ? 1 : -1) * (14 + Math.random() * 6);
 
       animarRebote();
     }
@@ -178,18 +201,15 @@
       currentX += vx;
       currentY += vy;
 
-      // Calcular los límites de la pantalla considerando el centro de la imagen
       const maxEdgeX = (window.innerWidth / 2);
       const maxEdgeY = (window.innerHeight / 2);
 
-      // Rebotar en bordes horizontales (Izquierda / Derecha)
       if (currentX >= maxEdgeX || currentX <= -maxEdgeX) {
-        vx = -vx; // Invertir dirección X
+        vx = -vx;
       }
 
-      // Rebotar en bordes verticales (Arriba / Abajo)
       if (currentY >= maxEdgeY || currentY <= -maxEdgeY) {
-        vy = -vy; // Invertir dirección Y
+        vy = -vy;
       }
 
       carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
