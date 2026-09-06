@@ -73,6 +73,9 @@
     let currentX = 0, currentY = 0;
     let ticking = false;
 
+    // Guardamos la última posición registrada del toque
+    let lastTouchX = 0, lastTouchY = 0;
+
     // Física de movimiento
     let isBouncing = false;
     let vx = 0, vy = 0;
@@ -98,7 +101,6 @@
       }
     });
 
-    // DETENER CUALQUIER ANIMACIÓN O FÍSICA
     function detenerAnimaciones() {
       isBouncing = false;
       if (bounceAnimId) {
@@ -109,22 +111,50 @@
       vy = 0;
     }
 
-    // CONTROL TÁCTIL (Touch Events)
+    // Función unificada para verificar si la carta debe desaparecer
+    function comprobarSalida(posX, posY) {
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const sensibilidad = 35; // Margen en píxeles respecto al borde
+
+      if (
+        posX <= sensibilidad || 
+        posX >= screenWidth - sensibilidad || 
+        posY <= sensibilidad || 
+        posY >= screenHeight - sensibilidad
+      ) {
+        ocultarCarta();
+        return true;
+      }
+      return false;
+    }
+
+    function ocultarCarta() {
+      carta.style.transition = 'opacity 0.1s ease-out';
+      carta.style.opacity = '0';
+      
+      setTimeout(() => {
+        if (carta.style.opacity === '0') {
+          carta.style.display = 'none';
+        }
+      }, 100);
+
+      isDragging = false;
+    }
+
+    // CONTROL TÁCTIL
     window.addEventListener('touchstart', (e) => {
-      // 1. Apagar la física del tirón
       detenerAnimaciones();
 
-      // 2. Marcar arrastre activo para que la agitación no moleste
-      isDragging = true;
-
       const touch = e.touches[0];
+      lastTouchX = touch.clientX;
+      lastTouchY = touch.clientY;
 
-      // 3. Restaurar visibilidad
       carta.style.display = 'block';
       carta.style.opacity = '1';
       carta.style.transition = 'none';
 
-      // 4. Calcular el desfase exacto respecto al toque en ese instante preciso
+      isDragging = true;
       touchOffsetX = touch.clientX - currentX;
       touchOffsetY = touch.clientY - currentY;
     }, { passive: false });
@@ -134,8 +164,9 @@
       e.preventDefault();
 
       const touch = e.touches[0];
+      lastTouchX = touch.clientX;
+      lastTouchY = touch.clientY;
 
-      // La posición de la carta sigue estrictamente la mano
       currentX = touch.clientX - touchOffsetX;
       currentY = touch.clientY - touchOffsetY;
 
@@ -143,38 +174,22 @@
         requestAnimationFrame(() => {
           carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
           
-          const touchX = touch.clientX;
-          const touchY = touch.clientY;
-          const screenWidth = window.innerWidth;
-          const screenHeight = window.innerHeight;
-          const sensibilidad = 20;
+          // Comprobamos la salida durante el arrastre
+          comprobarSalida(lastTouchX, lastTouchY);
 
-          // Salida por los bordes
-          if (
-            touchX <= sensibilidad || 
-            touchX >= screenWidth - sensibilidad || 
-            touchY <= sensibilidad || 
-            touchY >= screenHeight - sensibilidad
-          ) {
-            carta.style.transition = 'opacity 0.1s ease-out';
-            carta.style.opacity = '0';
-            
-            setTimeout(() => {
-              if (carta.style.opacity === '0') {
-                  carta.style.display = 'none';
-              }
-            }, 100);
-
-            isDragging = false;
-          }
-          
           ticking = false;
         });
         ticking = true;
       }
     }, { passive: false });
 
+    // COMPROBACIÓN FINAL AL LEVANTAR EL DEDO
     window.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      
+      // Si al levantar el dedo la carta quedó cerca de la orilla, la ocultamos de inmediato
+      comprobarSalida(lastTouchX, lastTouchY);
+
       isDragging = false;
     });
 
@@ -182,7 +197,6 @@
     let lastX = null, lastY = null, lastZ = null;
 
     function manejarAgitacion(e) {
-      // SI ESTAMOS ARRASTRANDO, IGNORAR EL SENSOR
       if (isDragging) return;
 
       const acc = e.accelerationIncludingGravity || e.acceleration;
@@ -208,7 +222,7 @@
       lastZ = acc.z;
     }
 
-    // FÍSICA
+    // FÍSICA DE REBOTE
     function aplicarImpulso(impulsX, impulsY) {
       if (isDragging) return;
 
@@ -241,7 +255,6 @@
       const maxEdgeX = (window.innerWidth / 2);
       const maxEdgeY = (window.innerHeight / 2);
 
-      // Rebotes
       if (currentX >= maxEdgeX) {
         currentX = maxEdgeX;
         vx = -vx * 0.7;
