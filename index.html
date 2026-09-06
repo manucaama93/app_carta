@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -45,7 +46,6 @@
       opacity: 1;
       transition: opacity 0.1s ease-out;
 
-      /* EVITA EL MENÚ EMERGENTE Y SELECCIÓN EN IOS */
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       pointer-events: auto;
@@ -164,17 +164,6 @@
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
 
-      /*
-       * IMPORTANTE:
-       *
-       * Antes se utilizaba un margen de 35 px.
-       * Eso hacía que se comprobara la posición del dedo,
-       * pero la carta podía seguir parcialmente visible.
-       *
-       * Ahora la carta desaparece cuando el dedo
-       * cruza realmente el borde de la pantalla.
-       */
-
       // Borde izquierdo
       if (posX <= 0) {
         ocultarCarta();
@@ -257,11 +246,7 @@
 
         isDragging = true;
 
-        /*
-         * Calculamos la diferencia entre la posición
-         * del dedo y la posición actual de la carta.
-         */
-
+        // Distancia entre el dedo y la carta
         touchOffsetX = touch.clientX - currentX;
         touchOffsetY = touch.clientY - currentY;
 
@@ -287,11 +272,7 @@
         lastTouchX = touch.clientX;
         lastTouchY = touch.clientY;
 
-        /*
-         * Actualizamos la posición de la carta
-         * siguiendo el dedo.
-         */
-
+        // Actualizar posición de la carta
         currentX = touch.clientX - touchOffsetX;
         currentY = touch.clientY - touchOffsetY;
 
@@ -302,21 +283,13 @@
 
           requestAnimationFrame(() => {
 
-            /*
-             * Primero comprobamos si el dedo ha salido
-             * de la pantalla.
-             */
-
+            // Comprobar primero si el dedo salió de la pantalla
             const haSalido = comprobarSalida(
               lastTouchX,
               lastTouchY
             );
 
-
-            /*
-             * Si ha salido, NO seguimos moviendo la carta.
-             */
-
+            // Si no salió, seguimos moviendo la carta
             if (!haSalido) {
 
               carta.style.transform =
@@ -344,11 +317,7 @@
 
         if (!isDragging) return;
 
-        /*
-         * Última comprobación por si el dedo terminó
-         * justo en el borde.
-         */
-
+        // Comprobación final
         comprobarSalida(
           lastTouchX,
           lastTouchY
@@ -470,10 +439,7 @@
       currentY += vy;
 
 
-      /*
-       * Límites del movimiento.
-       */
-
+      // Límites del movimiento
       const maxEdgeX =
         window.innerWidth / 2;
 
@@ -482,7 +448,6 @@
 
 
       // Rebote horizontal
-
       if (currentX >= maxEdgeX) {
 
         currentX = maxEdgeX;
@@ -496,7 +461,6 @@
 
 
       // Rebote vertical
-
       if (currentY >= maxEdgeY) {
 
         currentY = maxEdgeY;
@@ -513,11 +477,7 @@
         `translate3d(${currentX}px, ${currentY}px, 0)`;
 
 
-      /*
-       * Cuando la velocidad es suficientemente pequeña,
-       * detenemos la animación.
-       */
-
+      // Detener cuando la velocidad sea muy pequeña
       if (
         Math.abs(vx) < 0.2 &&
         Math.abs(vy) < 0.2
@@ -540,3 +500,4 @@
 
 </body>
 </html>
+```
