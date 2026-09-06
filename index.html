@@ -26,7 +26,7 @@
     }
     #carta {
       position: absolute;
-      /* TAMAÑO X3: Ajustado a 780px */
+      /* TAMAÑO X3: Mantenemos el tamaño grande */
       width: 780px; 
       height: auto;
       will-change: transform;
@@ -49,12 +49,15 @@
       const touch = e.touches[0];
       const rect = carta.getBoundingClientRect();
       
+      // Comprobar si el toque fue dentro de la carta
       if (
         touch.clientX >= rect.left &&
         touch.clientX <= rect.right &&
         touch.clientY >= rect.top &&
         touch.clientY <= rect.bottom
       ) {
+        // Reiniciar visibilidad por si acaso
+        carta.style.display = 'block';
         isDragging = true;
         startX = touch.clientX - currentX;
         startY = touch.clientY - currentY;
@@ -74,14 +77,21 @@
           carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
           
           const rect = carta.getBoundingClientRect();
-          const margin = 20; // Sensibilidad del borde
+          const screenWidth = window.innerWidth;
+          const screenHeight = window.innerHeight;
 
-          // Se oculta en cuanto toque cualquier extremo del borde
+          // NUEVA LÓGICA DE DESAPARICIÓN PARA CARTA GIGANTE
+          // La carta debe cruzar una 'línea de desaparición' más allá del borde físico.
+          // El 'offset' es cuánto de la carta debe salir antes de ocultarse.
+          // Usamos el 30% del ancho/alto de la carta como margen de seguridad.
+          const offsetWidth = rect.width * 0.3;
+          const offsetHeight = rect.height * 0.3;
+
           if (
-            rect.left <= margin || 
-            rect.right >= window.innerWidth - margin || 
-            rect.top <= margin || 
-            rect.bottom >= window.innerHeight - margin
+            rect.right < offsetWidth || // Sale por la IZQUIERDA
+            rect.left > screenWidth - offsetWidth || // Sale por la DERECHA
+            rect.bottom < offsetHeight || // Sale por ARRIBA
+            rect.top > screenHeight - offsetHeight // Sale por ABAJO
           ) {
             carta.style.display = 'none';
             isDragging = false;
