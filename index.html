@@ -1,68 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>TV</title>
-
-  <!-- ICONO PARA LA PANTALLA DE INICIO DE IOS -->
-  <link rel="apple-touch-icon" href="icon.png?v=2">
-
-  <style>
-    * {
-      box-sizing: border-box;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    body, html {
-      margin: 0;
-      padding: 0;
-      width: 100vw;
-      height: 100vh;
-      background-image: url('fondo.png?v=2');
-      background-position: center top;
-      background-size: 100% 100%;
-      background-repeat: no-repeat;
-      background-color: #000;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    #carta {
-      position: absolute;
-      width: 780px;
-      height: auto;
-      will-change: transform, opacity;
-      transform: translate3d(0,0,0);
-      opacity: 1;
-      transition: opacity 0.1s ease-out; 
-    }
-    /* Capa invisible para captura directa de permiso en iOS */
-    #capa-permiso {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 9999;
-      background: transparent;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Capa invisible para activar acelerómetro en iOS -->
-  <div id="capa-permiso"></div>
-
-  <img id="carta" src="carta.png" alt="Carta Doblada">
-
-  <script>
+<script>
     const carta = document.getElementById('carta');
     const capaPermiso = document.getElementById('capa-permiso');
 
@@ -71,10 +7,11 @@
     let currentX = 0, currentY = 0;
     let ticking = false;
 
-    // Variables de física de rebote
+    // Variables de física de dado (velocidad y fricción)
     let isBouncing = false;
     let vx = 0, vy = 0;
     let bounceAnimId = null;
+    const FRICCION = 0.94; // Cuanto más bajo, más rápido se frena (0.94 es ideal para efecto dado)
 
     // --- CAPTURA DE PERMISO DIRECTO PARA IOS ---
     capaPermiso.addEventListener('click', () => {
@@ -87,7 +24,7 @@
           })
           .catch(console.error)
           .finally(() => {
-            capaPermiso.remove(); // Elimina la capa invisible una vez pulsada
+            capaPermiso.remove();
           });
       } else {
         window.addEventListener('devicemotion', manejarAgitacion, true);
@@ -99,18 +36,21 @@
     let lastTap = 0;
 
     window.addEventListener('touchstart', (e) => {
-      // Doble toque rápido de respaldo por si acaso
+      // Doble toque rápido para simular un tiro de dado manual
       const currentTime = new Date().getTime();
       const tapLength = currentTime - lastTap;
       if (tapLength < 300 && tapLength > 0) {
-        if (!isBouncing) iniciarRebote();
+        aplicarImpulso(15, 15);
       }
       lastTap = currentTime;
 
       const touch = e.touches[0];
       
+      // Si la carta se estaba moviendo, detener la física al poner el dedo
       if (isBouncing) {
         isBouncing = false;
+        vx = 0;
+        vy = 0;
         cancelAnimationFrame(bounceAnimId);
       }
 
@@ -170,7 +110,7 @@
       isDragging = false;
     });
 
-    // --- DETECCIÓN DE AGITACIÓN ---
+    // --- DETECCIÓN DE AGITACIÓN CON IMPULSO ---
     let lastX = null, lastY = null, lastZ = null;
 
     function manejarAgitacion(e) {
@@ -180,12 +120,19 @@
       if (!acc) return;
 
       if (lastX !== null) {
-        const deltaX = Math.abs(acc.x - lastX);
-        const deltaY = Math.abs(acc.y - lastY);
-        const deltaZ = Math.abs(acc.z - lastZ);
+        const deltaX = acc.x - lastX;
+        const deltaY = acc.y - lastY;
+        const deltaZ = acc.z - lastZ;
 
-        if ((deltaX > 8 || deltaY > 8 || deltaZ > 8) && !isBouncing) {
-          iniciarRebote();
+        const fuerza = Math.abs(deltaX) + Math.abs(deltaY) + Math.abs(deltaZ);
+
+        // Si la agitación supera el umbral, le sumamos impulso proporcional
+        if (fuerza > 12) {
+          // Dirección según hacia dónde sacudas el teléfono
+          const dirX = deltaX > 0 ? -1 : 1;
+          const dirY = deltaY > 0 ? 1 : -1;
+          
+          aplicarImpulso(dirX * fuerza * 0.8, dirY * fuerza * 0.8);
         }
       }
 
@@ -194,21 +141,33 @@
       lastZ = acc.z;
     }
 
-    // --- MOTOR DE REBOTE ---
-    function iniciarRebote() {
-      isBouncing = true;
+    // --- MOTOR DE FÍSICA Y REBOTE TIPO DADO ---
+    function aplicarImpulso(impulsX, impulsY) {
       carta.style.display = 'block';
       carta.style.opacity = '1';
       carta.style.transition = 'none';
 
-      vx = (Math.random() > 0.5 ? 1 : -1) * (14 + Math.random() * 6);
-      vy = (Math.random() > 0.5 ? 1 : -1) * (14 + Math.random() * 6);
+      // Sumar impulso a la velocidad actual
+      vx += impulsX;
+      vy += impulsY;
 
-      animarRebote();
+      // Limitar velocidad máxima para que no se vuelva loca la imagen
+      const maxVel = 35;
+      vx = Math.max(-maxVel, Math.min(maxVel, vx));
+      vy = Math.max(-maxVel, Math.min(maxVel, vy));
+
+      if (!isBouncing) {
+        isBouncing = true;
+        animarFisica();
+      }
     }
 
-    function animarRebote() {
+    function animarFisica() {
       if (!isBouncing) return;
+
+      // Aplicar fricción (reduce velocidad en cada frame)
+      vx *= FRICCION;
+      vy *= FRICCION;
 
       currentX += vx;
       currentY += vy;
@@ -216,18 +175,34 @@
       const maxEdgeX = (window.innerWidth / 2);
       const maxEdgeY = (window.innerHeight / 2);
 
-      if (currentX >= maxEdgeX || currentX <= -maxEdgeX) {
-        vx = -vx;
+      // Rebotar en bordes horizontales perdiendo un poco de energía
+      if (currentX >= maxEdgeX) {
+        currentX = maxEdgeX;
+        vx = -vx * 0.7; // El 0.7 hace que el rebote absorba energía como un objeto real
+      } else if (currentX <= -maxEdgeX) {
+        currentX = -maxEdgeX;
+        vx = -vx * 0.7;
       }
 
-      if (currentY >= maxEdgeY || currentY <= -maxEdgeY) {
-        vy = -vy;
+      // Rebotar en bordes verticales
+      if (currentY >= maxEdgeY) {
+        currentY = maxEdgeY;
+        vy = -vy * 0.7;
+      } else if (currentY <= -maxEdgeY) {
+        currentY = -maxEdgeY;
+        vy = -vy * 0.7;
       }
 
       carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
 
-      bounceAnimId = requestAnimationFrame(animarRebote);
+      // Si la velocidad es casi cero, detener la animación por completo
+      if (Math.abs(vx) < 0.2 && Math.abs(vy) < 0.2) {
+        isBouncing = false;
+        vx = 0;
+        vy = 0;
+        return;
+      }
+
+      bounceAnimId = requestAnimationFrame(animarFisica);
     }
   </script>
-</body>
-</html>
