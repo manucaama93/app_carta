@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Juego de Magia</title>
+  <title>TV</title>
 
-  <!-- ICONO PARA LA PANTALLA DE INICIO DE IOS (Asegúrate de subir 'icon.png' a GitHub) -->
-  <link rel="apple-touch-icon" href="icon.png">
+  <!-- ICONO PARA LA PANTALLA DE INICIO DE IOS -->
+  <link rel="apple-touch-icon" href="icon.png?v=2">
 
   <style>
     * {
@@ -22,13 +22,11 @@
       padding: 0;
       width: 100vw;
       height: 100vh;
-      /* CONFIGURACIÓN DE FONDO NÍTIDO */
       background-image: url('fondo.png?v=2');
       background-position: center top;
-      background-size: 100% 100%; /* Ajuste exacto a la resolución de la pantalla */
+      background-size: 100% 100%;
       background-repeat: no-repeat;
       background-color: #000;
-      /* Evita que el navegador aplique desenfoque/suavizado a los píxeles */
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
       overflow: hidden;
@@ -58,9 +56,26 @@
     let currentX = 0, currentY = 0;
     let ticking = false;
 
+    // Variables para la animación de rebote (física)
+    let isBouncing = false;
+    let vx = 0, vy = 0; // Velocidad X e Y
+    let bounceAnimId = null;
+
+    // --- LÓGICA DE TOCAR Y ARRASTRAR (Gesto táctil) ---
     window.addEventListener('touchstart', (e) => {
       const touch = e.touches[0];
       
+      // Si la carta estaba rebotando por agitación, detiene el rebote al tocarla
+      if (isBouncing) {
+        isBouncing = false;
+        cancelAnimationFrame(bounceAnimId);
+      }
+
+      // Solicitar permisos de acelerómetro en iOS (necesario a partir de iOS 13)
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission().catch(() => {});
+      }
+
       carta.style.display = 'block';
       carta.style.opacity = '1';
       carta.style.transition = 'none';
@@ -89,6 +104,7 @@
           const screenHeight = window.innerHeight;
           const sensibilidad = 20;
 
+          // Desvanecer al llegar al borde
           if (
             touchX <= sensibilidad || 
             touchX >= screenWidth - sensibilidad || 
@@ -116,6 +132,70 @@
     window.addEventListener('touchend', () => {
       isDragging = false;
     });
+
+    // --- LÓGICA DE AGITACIÓN (Shake Detection) ---
+    let lastX = null, lastY = null, lastZ = null;
+    const SHAKE_THRESHOLD = 18; // Sensibilidad de la agitación
+
+    window.addEventListener('devicemotion', (e) => {
+      if (isDragging) return; // No rebotar si la estás agarrando con el dedo
+
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+
+      if (lastX !== null) {
+        const deltaX = Math.abs(acc.x - lastX);
+        const deltaY = Math.abs(acc.y - lastY);
+        const deltaZ = Math.abs(acc.z - lastZ);
+
+        // Si la aceleración supera el umbral, activamos el rebote
+        if (deltaX + deltaY + deltaZ > SHAKE_THRESHOLD && !isBouncing) {
+          iniciarRebote();
+        }
+      }
+
+      lastX = acc.x;
+      lastY = acc.y;
+      lastZ = acc.z;
+    });
+
+    function iniciarRebote() {
+      isBouncing = true;
+      carta.style.display = 'block';
+      carta.style.opacity = '1';
+      carta.style.transition = 'none';
+
+      // Asignar una velocidad inicial aleatoria hacia alguna dirección
+      vx = (Math.random() > 0.5 ? 1 : -1) * (12 + Math.random() * 8);
+      vy = (Math.random() > 0.5 ? 1 : -1) * (12 + Math.random() * 8);
+
+      animarRebote();
+    }
+
+    function animarRebote() {
+      if (!isBouncing) return;
+
+      currentX += vx;
+      currentY += vy;
+
+      // Calcular los límites de la pantalla considerando el centro de la imagen
+      const maxEdgeX = (window.innerWidth / 2);
+      const maxEdgeY = (window.innerHeight / 2);
+
+      // Rebotar en bordes horizontales (Izquierda / Derecha)
+      if (currentX >= maxEdgeX || currentX <= -maxEdgeX) {
+        vx = -vx; // Invertir dirección X
+      }
+
+      // Rebotar en bordes verticales (Arriba / Abajo)
+      if (currentY >= maxEdgeY || currentY <= -maxEdgeY) {
+        vy = -vy; // Invertir dirección Y
+      }
+
+      carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+      bounceAnimId = requestAnimationFrame(animarRebote);
+    }
   </script>
 </body>
 </html>
