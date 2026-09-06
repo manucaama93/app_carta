@@ -26,11 +26,11 @@
     }
     #carta {
       position: absolute;
-      /* TAMAÑO X3: Mantenemos el tamaño grande */
-      width: 780px; 
+      width: 780px; /* Tamaño gigante x3 */
       height: auto;
       will-change: transform;
       transform: translate3d(0,0,0);
+      pointer-events: auto;
     }
   </style>
 </head>
@@ -47,21 +47,14 @@
 
     window.addEventListener('touchstart', (e) => {
       const touch = e.touches[0];
-      const rect = carta.getBoundingClientRect();
       
-      // Comprobar si el toque fue dentro de la carta
-      if (
-        touch.clientX >= rect.left &&
-        touch.clientX <= rect.right &&
-        touch.clientY >= rect.top &&
-        touch.clientY <= rect.bottom
-      ) {
-        // Reiniciar visibilidad por si acaso
-        carta.style.display = 'block';
-        isDragging = true;
-        startX = touch.clientX - currentX;
-        startY = touch.clientY - currentY;
-      }
+      // Asegurar que la carta sea visible al tocar
+      carta.style.display = 'block';
+      isDragging = true;
+      
+      // Guardar el offset inicial respecto a donde pones el dedo
+      startX = touch.clientX - currentX;
+      startY = touch.clientY - currentY;
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
@@ -69,31 +62,28 @@
       e.preventDefault();
 
       const touch = e.touches[0];
-      currentX = touch.clientX - startX;
-      currentY = touch.clientY - startY;
+      const touchX = touch.clientX;
+      const touchY = touch.clientY;
+
+      currentX = touchX - startX;
+      currentY = touchY - startY;
 
       if (!ticking) {
         requestAnimationFrame(() => {
           carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
           
-          const rect = carta.getBoundingClientRect();
           const screenWidth = window.innerWidth;
           const screenHeight = window.innerHeight;
+          const borderMargin = 15; // Sensibilidad al borde según la posición del DEDO
 
-          // NUEVA LÓGICA DE DESAPARICIÓN PARA CARTA GIGANTE
-          // La carta debe cruzar una 'línea de desaparición' más allá del borde físico.
-          // El 'offset' es cuánto de la carta debe salir antes de ocultarse.
-          // Usamos el 30% del ancho/alto de la carta como margen de seguridad.
-          const offsetWidth = rect.width * 0.3;
-          const offsetHeight = rect.height * 0.3;
-
+          // Ocultar si EL DEDO (no los bordes de la carta) alcanza el margen exterior
           if (
-            rect.right < offsetWidth || // Sale por la IZQUIERDA
-            rect.left > screenWidth - offsetWidth || // Sale por la DERECHA
-            rect.bottom < offsetHeight || // Sale por ARRIBA
-            rect.top > screenHeight - offsetHeight // Sale por ABAJO
+            touchX <= borderMargin || 
+            touchX >= screenWidth - borderMargin || 
+            touchY <= borderMargin || 
+            touchY >= screenHeight - borderMargin
           ) {
-            carta.style.display = 'none';
+            carta.style.display = 'none'; // Desaparece la carta
             isDragging = false;
           }
           
@@ -107,5 +97,7 @@
       isDragging = false;
     });
   </script>
+</body>
+</html>
 </body>
 </html>
