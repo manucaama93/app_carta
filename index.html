@@ -33,20 +33,21 @@
       display: flex;
       justify-content: center;
       align-items: center;
-#carta {
-  position: absolute;
-  width: 780px;
-  height: auto;
-  will-change: transform, opacity;
-  transform: translate3d(0,0,0);
-  opacity: 1;
-  transition: opacity 0.1s ease-out;
+    }
+    #carta {
+      position: absolute;
+      width: 780px;
+      height: auto;
+      will-change: transform, opacity;
+      transform: translate3d(0,0,0);
+      opacity: 1;
+      transition: opacity 0.1s ease-out;
 
-  /* EVITA EL MENÚ EMERGENTE Y SELECCIÓN EN IOS */
-  -webkit-touch-callout: none; /* Desactiva el menú contextual de guardar/copiar */
-  -webkit-user-select: none;   /* Desactiva la selección de texto o imagen */
-  pointer-events: auto;        /* Mantiene la captura de eventos táctiles */
-}
+      /* EVITA EL MENÚ EMERGENTE Y SELECCIÓN EN IOS */
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      pointer-events: auto;
+    }
     #capa-permiso {
       position: fixed;
       top: 0;
@@ -98,29 +99,25 @@
     });
 
     // Control Táctil
-    let lastTap = 0;
-
     window.addEventListener('touchstart', (e) => {
-      const currentTime = new Date().getTime();
-      const tapLength = currentTime - lastTap;
-      if (tapLength < 300 && tapLength > 0) {
-        aplicarImpulso(15, 15);
-      }
-      lastTap = currentTime;
-
-      const touch = e.touches[0];
-      
+      // 1. Detener completamente cualquier física o animación activa
       if (isBouncing) {
         isBouncing = false;
-        vx = 0;
-        vy = 0;
         cancelAnimationFrame(bounceAnimId);
       }
+      
+      // 2. Resetear velocidades
+      vx = 0;
+      vy = 0;
 
+      const touch = e.touches[0];
+
+      // 3. Restablecer visibilidad
       carta.style.display = 'block';
       carta.style.opacity = '1';
       carta.style.transition = 'none';
 
+      // 4. Recalcular origen exacto
       isDragging = true;
       startX = touch.clientX - currentX;
       startY = touch.clientY - currentY;
