@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>TV</title>
 
+  <!-- ICONO PARA LA PANTALLA DE INICIO DE IOS -->
   <link rel="apple-touch-icon" href="icon.png?v=2">
 
   <style>
@@ -17,660 +17,169 @@
       user-select: none;
       -webkit-user-select: none;
     }
-
     body, html {
       margin: 0;
       padding: 0;
       width: 100vw;
       height: 100vh;
-
       background-image: url('fondo.png?v=2');
       background-position: center top;
       background-size: 100% 100%;
       background-repeat: no-repeat;
       background-color: #000;
-
       image-rendering: -webkit-optimize-contrast;
       image-rendering: crisp-edges;
-
       overflow: hidden;
-
       display: flex;
       justify-content: center;
       align-items: center;
     }
-
     #carta {
       position: absolute;
       width: 780px;
       height: auto;
-
       will-change: transform, opacity;
-
-      transform: translate3d(0, 0, 0);
-
+      transform: translate3d(0,0,0);
       opacity: 1;
-
       transition: opacity 0.1s ease-out;
 
+      /* EVITA EL MENÚ EMERGENTE Y SELECCIÓN EN IOS */
       -webkit-touch-callout: none;
       -webkit-user-select: none;
-
       pointer-events: auto;
     }
-
     #capa-permiso {
       position: fixed;
       top: 0;
       left: 0;
-
       width: 100vw;
       height: 100vh;
-
       z-index: 9999;
-
       background: transparent;
     }
   </style>
 </head>
-
 <body>
 
   <div id="capa-permiso"></div>
-
-  <img
-    id="carta"
-    src="carta.png"
-    alt="Carta Doblada"
-  >
+  <img id="carta" src="carta.png" alt="Carta Doblada">
 
   <script>
-
     const carta = document.getElementById('carta');
     const capaPermiso = document.getElementById('capa-permiso');
 
-
-    // =========================================================
-    // VARIABLES DE MOVIMIENTO
-    // =========================================================
-
     let isDragging = false;
-
-    let touchOffsetX = 0;
-    let touchOffsetY = 0;
-
-    let currentX = 0;
-    let currentY = 0;
-
+    let startX = 0, startY = 0;
+    let currentX = 0, currentY = 0;
     let ticking = false;
 
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-
-
-    // =========================================================
-    // FÍSICA
-    // =========================================================
-
-    let isBouncing = false;
-
-    let vx = 0;
-    let vy = 0;
-
-    let bounceAnimId = null;
-
-    const FRICCION = 0.94;
-
-
-    // =========================================================
-    // PERMISOS IOS
-    // =========================================================
-
+    // Permisos en iOS para el sensor
     capaPermiso.addEventListener('click', () => {
-
-      if (
-        typeof DeviceMotionEvent !== 'undefined' &&
-        typeof DeviceMotionEvent.requestPermission === 'function'
-      ) {
-
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         DeviceMotionEvent.requestPermission()
-
           .then(response => {
-
             if (response === 'granted') {
-
-              window.addEventListener(
-                'devicemotion',
-                manejarAgitacion,
-                true
-              );
-
+              window.addEventListener('devicemotion', manejarAgitacion, true);
             }
-
           })
-
           .catch(console.error)
-
           .finally(() => {
-
             capaPermiso.remove();
-
           });
-
       } else {
-
-        window.addEventListener(
-          'devicemotion',
-          manejarAgitacion,
-          true
-        );
-
+        window.addEventListener('devicemotion', manejarAgitacion, true);
         capaPermiso.remove();
-
       }
-
     });
 
+    // Control Táctil Original
+    window.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
 
-    // =========================================================
-    // DETENER ANIMACIONES
-    // =========================================================
+      carta.style.display = 'block';
+      carta.style.opacity = '1';
+      carta.style.transition = 'none';
 
-    function detenerAnimaciones() {
+      isDragging = true;
+      startX = touch.clientX - currentX;
+      startY = touch.clientY - currentY;
+    }, { passive: false });
 
-      isBouncing = false;
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
 
-      if (bounceAnimId) {
+      const touch = e.touches[0];
+      const touchX = touch.clientX;
+      const touchY = touch.clientY;
 
-        cancelAnimationFrame(bounceAnimId);
+      currentX = touchX - startX;
+      currentY = touchY - startY;
 
-        bounceAnimId = null;
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+          
+          const screenWidth = window.innerWidth;
+          const screenHeight = window.innerHeight;
+          const sensibilidad = 20;
 
+          if (
+            touchX <= sensibilidad || 
+            touchX >= screenWidth - sensibilidad || 
+            touchY <= sensibilidad || 
+            touchY >= screenHeight - sensibilidad
+          ) {
+            carta.style.transition = 'opacity 0.1s ease-out';
+            carta.style.opacity = '0';
+            
+            setTimeout(() => {
+              if (carta.style.opacity === '0') {
+                  carta.style.display = 'none';
+              }
+            }, 100);
+
+            isDragging = false;
+          }
+          
+          ticking = false;
+        });
+        ticking = true;
       }
+    }, { passive: false });
 
-      vx = 0;
-      vy = 0;
-
-    }
-
-
-    // =========================================================
-    // OCULTAR CARTA
-    // =========================================================
-
-    function ocultarCarta() {
-
+    window.addEventListener('touchend', () => {
       isDragging = false;
+    });
 
-      isBouncing = false;
-
-      vx = 0;
-      vy = 0;
-
-
-      if (bounceAnimId) {
-
-        cancelAnimationFrame(bounceAnimId);
-
-        bounceAnimId = null;
-
-      }
-
-
-      carta.style.transition =
-        'opacity 0.1s ease-out';
-
-      carta.style.opacity = '0';
-
-
-      setTimeout(() => {
-
-        if (carta.style.opacity === '0') {
-
-          carta.style.display = 'none';
-
-        }
-
-      }, 100);
-
-    }
-
-
-    // =========================================================
-    // COMPROBAR BORDE
-    // =========================================================
-
-    function comprobarSalida(posX, posY) {
-
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
-
-      /*
-       * IMPORTANTE:
-       *
-       * Aquí comprobamos solamente la posición del DEDO.
-       *
-       * No limitamos ni modificamos la posición de la carta.
-       */
-
-
-      // Izquierda
-      if (posX <= 0) {
-
-        ocultarCarta();
-
-        return true;
-
-      }
-
-
-      // Derecha
-      if (posX >= screenWidth) {
-
-        ocultarCarta();
-
-        return true;
-
-      }
-
-
-      // Arriba
-      if (posY <= 0) {
-
-        ocultarCarta();
-
-        return true;
-
-      }
-
-
-      // Abajo
-      if (posY >= screenHeight) {
-
-        ocultarCarta();
-
-        return true;
-
-      }
-
-
-      return false;
-
-    }
-
-
-    // =========================================================
-    // TOUCH START
-    // =========================================================
-
-    window.addEventListener(
-      'touchstart',
-      (e) => {
-
-        detenerAnimaciones();
-
-        const touch = e.touches[0];
-
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
-
-
-        carta.style.display = 'block';
-        carta.style.opacity = '1';
-        carta.style.transition = 'none';
-
-
-        isDragging = true;
-
-
-        touchOffsetX =
-          touch.clientX - currentX;
-
-        touchOffsetY =
-          touch.clientY - currentY;
-
-      },
-      {
-        passive: false
-      }
-    );
-
-
-    // =========================================================
-    // TOUCH MOVE
-    // =========================================================
-
-    window.addEventListener(
-      'touchmove',
-      (e) => {
-
-        if (!isDragging) return;
-
-        e.preventDefault();
-
-
-        const touch = e.touches[0];
-
-
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
-
-
-        // =====================================================
-        // PRIMERO MOVEMOS LA CARTA
-        // =====================================================
-
-        currentX =
-          touch.clientX - touchOffsetX;
-
-        currentY =
-          touch.clientY - touchOffsetY;
-
-
-        if (!ticking) {
-
-          ticking = true;
-
-
-          requestAnimationFrame(() => {
-
-            /*
-             * ESTA ES LA PARTE IMPORTANTE:
-             *
-             * Primero se actualiza la carta.
-             */
-
-            carta.style.transform =
-              `translate3d(
-                ${currentX}px,
-                ${currentY}px,
-                0
-              )`;
-
-
-            /*
-             * DESPUÉS comprobamos si el dedo
-             * ha llegado al borde.
-             */
-
-            if (
-              lastTouchX <= 0 ||
-              lastTouchX >= window.innerWidth ||
-              lastTouchY <= 0 ||
-              lastTouchY >= window.innerHeight
-            ) {
-
-              ocultarCarta();
-
-            }
-
-
-            ticking = false;
-
-          });
-
-        }
-
-      },
-      {
-        passive: false
-      }
-    );
-
-
-    // =========================================================
-    // TOUCH END
-    // =========================================================
-
-    window.addEventListener(
-      'touchend',
-      () => {
-
-        if (!isDragging) return;
-
-
-        comprobarSalida(
-          lastTouchX,
-          lastTouchY
-        );
-
-
-        isDragging = false;
-
-      }
-    );
-
-
-    // =========================================================
-    // TOUCH CANCEL
-    // =========================================================
-
-    window.addEventListener(
-      'touchcancel',
-      () => {
-
-        isDragging = false;
-
-      }
-    );
-
-
-    // =========================================================
-    // SENSOR DE MOVIMIENTO
-    // =========================================================
-
-    let lastX = null;
-    let lastY = null;
-    let lastZ = null;
-
+    // Sensor de movimiento básico
+    let lastX = null, lastY = null, lastZ = null;
 
     function manejarAgitacion(e) {
-
       if (isDragging) return;
 
-
-      const acc =
-        e.accelerationIncludingGravity ||
-        e.acceleration;
-
-
+      const acc = e.accelerationIncludingGravity || e.acceleration;
       if (!acc) return;
 
-
       if (lastX !== null) {
+        const deltaX = acc.x - lastX;
+        const deltaY = acc.y - lastY;
+        const deltaZ = acc.z - lastZ;
 
-        const deltaX =
-          acc.x - lastX;
-
-        const deltaY =
-          acc.y - lastY;
-
-        const deltaZ =
-          acc.z - lastZ;
-
-
-        const fuerza =
-          Math.abs(deltaX) +
-          Math.abs(deltaY) +
-          Math.abs(deltaZ);
-
+        const fuerza = Math.abs(deltaX) + Math.abs(deltaY) + Math.abs(deltaZ);
 
         if (fuerza > 12) {
-
-          const dirX =
-            deltaX > 0 ? -1 : 1;
-
-          const dirY =
-            deltaY > 0 ? 1 : -1;
-
-
-          aplicarImpulso(
-            dirX * fuerza * 0.8,
-            dirY * fuerza * 0.8
-          );
-
+          // Aparece o vuelve al centro de forma limpia
+          carta.style.display = 'block';
+          carta.style.opacity = '1';
+          carta.style.transition = 'none';
         }
-
       }
-
 
       lastX = acc.x;
       lastY = acc.y;
       lastZ = acc.z;
-
     }
-
-
-    // =========================================================
-    // APLICAR IMPULSO
-    // =========================================================
-
-    function aplicarImpulso(
-      impulsX,
-      impulsY
-    ) {
-
-      if (isDragging) return;
-
-
-      carta.style.display = 'block';
-
-      carta.style.opacity = '1';
-
-      carta.style.transition = 'none';
-
-
-      vx += impulsX;
-      vy += impulsY;
-
-
-      const maxVel = 35;
-
-
-      vx = Math.max(
-        -maxVel,
-        Math.min(maxVel, vx)
-      );
-
-
-      vy = Math.max(
-        -maxVel,
-        Math.min(maxVel, vy)
-      );
-
-
-      if (!isBouncing) {
-
-        isBouncing = true;
-
-        animarFisica();
-
-      }
-
-    }
-
-
-    // =========================================================
-    // FÍSICA DE REBOTE
-    // =========================================================
-
-    function animarFisica() {
-
-      if (
-        !isBouncing ||
-        isDragging
-      ) {
-
-        return;
-
-      }
-
-
-      vx *= FRICCION;
-      vy *= FRICCION;
-
-
-      currentX += vx;
-      currentY += vy;
-
-
-      const maxEdgeX =
-        window.innerWidth / 2;
-
-      const maxEdgeY =
-        window.innerHeight / 2;
-
-
-      // Rebote horizontal
-
-      if (currentX >= maxEdgeX) {
-
-        currentX = maxEdgeX;
-
-        vx = -vx * 0.7;
-
-      }
-
-      else if (currentX <= -maxEdgeX) {
-
-        currentX = -maxEdgeX;
-
-        vx = -vx * 0.7;
-
-      }
-
-
-      // Rebote vertical
-
-      if (currentY >= maxEdgeY) {
-
-        currentY = maxEdgeY;
-
-        vy = -vy * 0.7;
-
-      }
-
-      else if (currentY <= -maxEdgeY) {
-
-        currentY = -maxEdgeY;
-
-        vy = -vy * 0.7;
-
-      }
-
-
-      carta.style.transform =
-        `translate3d(
-          ${currentX}px,
-          ${currentY}px,
-          0
-        )`;
-
-
-      if (
-        Math.abs(vx) < 0.2 &&
-        Math.abs(vy) < 0.2
-      ) {
-
-        isBouncing = false;
-
-        vx = 0;
-        vy = 0;
-
-        return;
-
-      }
-
-
-      bounceAnimId =
-        requestAnimationFrame(
-          animarFisica
-        );
-
-    }
-
   </script>
-
 </body>
 </html>
-```
