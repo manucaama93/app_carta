@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -17,6 +18,7 @@
       user-select: none;
       -webkit-user-select: none;
     }
+
     body, html {
       margin: 0;
       padding: 0;
@@ -34,12 +36,13 @@
       justify-content: center;
       align-items: center;
     }
+
     #carta {
       position: absolute;
       width: 780px;
       height: auto;
       will-change: transform, opacity;
-      transform: translate3d(0,0,0);
+      transform: translate3d(0, 0, 0);
       opacity: 1;
       transition: opacity 0.1s ease-out;
 
@@ -48,6 +51,7 @@
       -webkit-user-select: none;
       pointer-events: auto;
     }
+
     #capa-permiso {
       position: fixed;
       top: 0;
@@ -59,6 +63,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <div id="capa-permiso"></div>
@@ -69,161 +74,354 @@
     const capaPermiso = document.getElementById('capa-permiso');
 
     let isDragging = false;
-    let touchOffsetX = 0, touchOffsetY = 0;
-    let currentX = 0, currentY = 0;
+
+    let touchOffsetX = 0;
+    let touchOffsetY = 0;
+
+    let currentX = 0;
+    let currentY = 0;
+
     let ticking = false;
 
-    // Guardamos la última posición registrada del toque
-    let lastTouchX = 0, lastTouchY = 0;
+    // Última posición registrada del toque
+    let lastTouchX = 0;
+    let lastTouchY = 0;
 
     // Física de movimiento
     let isBouncing = false;
-    let vx = 0, vy = 0;
+    let vx = 0;
+    let vy = 0;
+
     let bounceAnimId = null;
+
     const FRICCION = 0.94;
 
-    // Permisos en iOS
+
+    // =========================================================
+    // PERMISOS EN IOS
+    // =========================================================
+
     capaPermiso.addEventListener('click', () => {
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+
+      if (
+        typeof DeviceMotionEvent !== 'undefined' &&
+        typeof DeviceMotionEvent.requestPermission === 'function'
+      ) {
+
         DeviceMotionEvent.requestPermission()
           .then(response => {
+
             if (response === 'granted') {
-              window.addEventListener('devicemotion', manejarAgitacion, true);
+              window.addEventListener(
+                'devicemotion',
+                manejarAgitacion,
+                true
+              );
             }
+
           })
           .catch(console.error)
           .finally(() => {
             capaPermiso.remove();
           });
+
       } else {
-        window.addEventListener('devicemotion', manejarAgitacion, true);
+
+        window.addEventListener(
+          'devicemotion',
+          manejarAgitacion,
+          true
+        );
+
         capaPermiso.remove();
       }
     });
 
+
+    // =========================================================
+    // DETENER ANIMACIONES
+    // =========================================================
+
     function detenerAnimaciones() {
+
       isBouncing = false;
+
       if (bounceAnimId) {
         cancelAnimationFrame(bounceAnimId);
         bounceAnimId = null;
       }
+
       vx = 0;
       vy = 0;
     }
 
-    // Función unificada para verificar si la carta debe desaparecer
+
+    // =========================================================
+    // COMPROBAR SI EL DEDO SALE DE LA PANTALLA
+    // =========================================================
+
     function comprobarSalida(posX, posY) {
+
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
-      const sensibilidad = 35; // Margen en píxeles respecto al borde
 
-      if (
-        posX <= sensibilidad || 
-        posX >= screenWidth - sensibilidad || 
-        posY <= sensibilidad || 
-        posY >= screenHeight - sensibilidad
-      ) {
+      /*
+       * IMPORTANTE:
+       *
+       * Antes se utilizaba un margen de 35 px.
+       * Eso hacía que se comprobara la posición del dedo,
+       * pero la carta podía seguir parcialmente visible.
+       *
+       * Ahora la carta desaparece cuando el dedo
+       * cruza realmente el borde de la pantalla.
+       */
+
+      // Borde izquierdo
+      if (posX <= 0) {
         ocultarCarta();
         return true;
       }
+
+      // Borde derecho
+      if (posX >= screenWidth) {
+        ocultarCarta();
+        return true;
+      }
+
+      // Borde superior
+      if (posY <= 0) {
+        ocultarCarta();
+        return true;
+      }
+
+      // Borde inferior
+      if (posY >= screenHeight) {
+        ocultarCarta();
+        return true;
+      }
+
       return false;
     }
 
+
+    // =========================================================
+    // OCULTAR CARTA
+    // =========================================================
+
     function ocultarCarta() {
+
       carta.style.transition = 'opacity 0.1s ease-out';
       carta.style.opacity = '0';
-      
+
+      isDragging = false;
+
+      // Detener cualquier rebote
+      isBouncing = false;
+
+      if (bounceAnimId) {
+        cancelAnimationFrame(bounceAnimId);
+        bounceAnimId = null;
+      }
+
+      vx = 0;
+      vy = 0;
+
       setTimeout(() => {
+
         if (carta.style.opacity === '0') {
           carta.style.display = 'none';
         }
-      }, 100);
 
-      isDragging = false;
+      }, 100);
     }
 
-    // CONTROL TÁCTIL
-    window.addEventListener('touchstart', (e) => {
-      detenerAnimaciones();
 
-      const touch = e.touches[0];
-      lastTouchX = touch.clientX;
-      lastTouchY = touch.clientY;
+    // =========================================================
+    // CONTROL TÁCTIL - INICIO
+    // =========================================================
 
-      carta.style.display = 'block';
-      carta.style.opacity = '1';
-      carta.style.transition = 'none';
+    window.addEventListener(
+      'touchstart',
+      (e) => {
 
-      isDragging = true;
-      touchOffsetX = touch.clientX - currentX;
-      touchOffsetY = touch.clientY - currentY;
-    }, { passive: false });
+        detenerAnimaciones();
 
-    window.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
+        const touch = e.touches[0];
 
-      const touch = e.touches[0];
-      lastTouchX = touch.clientX;
-      lastTouchY = touch.clientY;
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
 
-      currentX = touch.clientX - touchOffsetX;
-      currentY = touch.clientY - touchOffsetY;
+        // Volver a mostrar la carta
+        carta.style.display = 'block';
+        carta.style.opacity = '1';
+        carta.style.transition = 'none';
 
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-          
-          // Comprobamos la salida durante el arrastre
-          comprobarSalida(lastTouchX, lastTouchY);
+        isDragging = true;
 
-          ticking = false;
-        });
-        ticking = true;
+        /*
+         * Calculamos la diferencia entre la posición
+         * del dedo y la posición actual de la carta.
+         */
+
+        touchOffsetX = touch.clientX - currentX;
+        touchOffsetY = touch.clientY - currentY;
+
+      },
+      { passive: false }
+    );
+
+
+    // =========================================================
+    // CONTROL TÁCTIL - MOVIMIENTO
+    // =========================================================
+
+    window.addEventListener(
+      'touchmove',
+      (e) => {
+
+        if (!isDragging) return;
+
+        e.preventDefault();
+
+        const touch = e.touches[0];
+
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+
+        /*
+         * Actualizamos la posición de la carta
+         * siguiendo el dedo.
+         */
+
+        currentX = touch.clientX - touchOffsetX;
+        currentY = touch.clientY - touchOffsetY;
+
+
+        if (!ticking) {
+
+          ticking = true;
+
+          requestAnimationFrame(() => {
+
+            /*
+             * Primero comprobamos si el dedo ha salido
+             * de la pantalla.
+             */
+
+            const haSalido = comprobarSalida(
+              lastTouchX,
+              lastTouchY
+            );
+
+
+            /*
+             * Si ha salido, NO seguimos moviendo la carta.
+             */
+
+            if (!haSalido) {
+
+              carta.style.transform =
+                `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+            }
+
+            ticking = false;
+
+          });
+        }
+
+      },
+      { passive: false }
+    );
+
+
+    // =========================================================
+    // CONTROL TÁCTIL - FINAL
+    // =========================================================
+
+    window.addEventListener(
+      'touchend',
+      () => {
+
+        if (!isDragging) return;
+
+        /*
+         * Última comprobación por si el dedo terminó
+         * justo en el borde.
+         */
+
+        comprobarSalida(
+          lastTouchX,
+          lastTouchY
+        );
+
+        isDragging = false;
+
       }
-    }, { passive: false });
+    );
 
-    // COMPROBACIÓN FINAL AL LEVANTAR EL DEDO
-    window.addEventListener('touchend', () => {
-      if (!isDragging) return;
-      
-      // Si al levantar el dedo la carta quedó cerca de la orilla, la ocultamos de inmediato
-      comprobarSalida(lastTouchX, lastTouchY);
 
-      isDragging = false;
-    });
-
+    // =========================================================
     // SENSOR DE MOVIMIENTO
-    let lastX = null, lastY = null, lastZ = null;
+    // =========================================================
+
+    let lastX = null;
+    let lastY = null;
+    let lastZ = null;
+
 
     function manejarAgitacion(e) {
+
       if (isDragging) return;
 
-      const acc = e.accelerationIncludingGravity || e.acceleration;
+      const acc =
+        e.accelerationIncludingGravity ||
+        e.acceleration;
+
       if (!acc) return;
 
+
       if (lastX !== null) {
+
         const deltaX = acc.x - lastX;
         const deltaY = acc.y - lastY;
         const deltaZ = acc.z - lastZ;
 
-        const fuerza = Math.abs(deltaX) + Math.abs(deltaY) + Math.abs(deltaZ);
+        const fuerza =
+          Math.abs(deltaX) +
+          Math.abs(deltaY) +
+          Math.abs(deltaZ);
+
 
         if (fuerza > 12) {
-          const dirX = deltaX > 0 ? -1 : 1;
-          const dirY = deltaY > 0 ? 1 : -1;
-          
-          aplicarImpulso(dirX * fuerza * 0.8, dirY * fuerza * 0.8);
+
+          const dirX =
+            deltaX > 0 ? -1 : 1;
+
+          const dirY =
+            deltaY > 0 ? 1 : -1;
+
+
+          aplicarImpulso(
+            dirX * fuerza * 0.8,
+            dirY * fuerza * 0.8
+          );
         }
       }
+
 
       lastX = acc.x;
       lastY = acc.y;
       lastZ = acc.z;
     }
 
-    // FÍSICA DE REBOTE
+
+    // =========================================================
+    // APLICAR IMPULSO
+    // =========================================================
+
     function aplicarImpulso(impulsX, impulsY) {
+
       if (isDragging) return;
 
       carta.style.display = 'block';
@@ -233,55 +431,127 @@
       vx += impulsX;
       vy += impulsY;
 
+
       const maxVel = 35;
-      vx = Math.max(-maxVel, Math.min(maxVel, vx));
-      vy = Math.max(-maxVel, Math.min(maxVel, vy));
+
+      vx = Math.max(
+        -maxVel,
+        Math.min(maxVel, vx)
+      );
+
+      vy = Math.max(
+        -maxVel,
+        Math.min(maxVel, vy)
+      );
+
 
       if (!isBouncing) {
+
         isBouncing = true;
+
         animarFisica();
       }
     }
 
+
+    // =========================================================
+    // FÍSICA DE REBOTE
+    // =========================================================
+
     function animarFisica() {
+
       if (!isBouncing || isDragging) return;
+
 
       vx *= FRICCION;
       vy *= FRICCION;
 
+
       currentX += vx;
       currentY += vy;
 
-      const maxEdgeX = (window.innerWidth / 2);
-      const maxEdgeY = (window.innerHeight / 2);
+
+      /*
+       * Límites del movimiento.
+       */
+
+      const maxEdgeX =
+        window.innerWidth / 2;
+
+      const maxEdgeY =
+        window.innerHeight / 2;
+
+
+      // Rebote horizontal
 
       if (currentX >= maxEdgeX) {
+
         currentX = maxEdgeX;
         vx = -vx * 0.7;
+
       } else if (currentX <= -maxEdgeX) {
+
         currentX = -maxEdgeX;
         vx = -vx * 0.7;
       }
 
+
+      // Rebote vertical
+
       if (currentY >= maxEdgeY) {
+
         currentY = maxEdgeY;
         vy = -vy * 0.7;
+
       } else if (currentY <= -maxEdgeY) {
+
         currentY = -maxEdgeY;
         vy = -vy * 0.7;
       }
 
-      carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
 
-      if (Math.abs(vx) < 0.2 && Math.abs(vy) < 0.2) {
+      carta.style.transform =
+        `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+
+      /*
+       * Cuando la velocidad es suficientemente pequeña,
+       * detenemos la animación.
+       */
+
+      if (
+        Math.abs(vx) < 0.2 &&
+        Math.abs(vy) < 0.2
+      ) {
+
         isBouncing = false;
+
         vx = 0;
         vy = 0;
+
         return;
       }
 
-      bounceAnimId = requestAnimationFrame(animarFisica);
+
+      bounceAnimId =
+        requestAnimationFrame(animarFisica);
     }
+
   </script>
+
 </body>
 </html>
+```
+
+**El cambio clave** es que ahora se utiliza la posición real del dedo:
+
+```js
+if (posX <= 0) {
+    ocultarCarta();
+    return true;
+}
+```
+
+Así que puedes arrastrar la carta hacia la izquierda y, **en el momento en que tu pulgar cruza el borde de la pantalla, la carta desaparece**, aunque todavía quede media carta visible.
+
+Si lo que quieres es el efecto más natural para un juego de magia, también puedo hacer que **la carta desaparezca justo cuando el borde izquierdo de la carta cruce la pantalla**, en lugar de hacerlo cuando salga el dedo.
