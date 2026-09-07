@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="screen-orientation" content="portrait">
   <title>TV</title>
 
   <link rel="apple-touch-icon" href="icon.png?v=2">
@@ -35,9 +36,22 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
+    /* BLOQUEO DE ORIENTACIÓN: Si se gira el teléfono en horizontal, forzamos mantener la vista en vertical */
+    @media screen and (orientation: landscape) {
+      html {
+        transform: rotate(-90deg);
+        transform-origin: center center;
+        width: 100vh;
+        height: 100vw;
+        position: absolute;
+        top: calc(50% - 50vw);
+        left: calc(50% - 50vh);
+      }
+    }
+
     #carta {
       position: absolute;
-      width: 430px; /* Incrementado un 10% respecto a 390px */
+      width: 430px;
       height: auto;
       will-change: transform, opacity;
       transform: translate3d(0,0,0);
@@ -49,15 +63,16 @@
       display: none; /* Oculta al inicio */
     }
 
-    /* ZONA SECRETA DE DOBLE TOQUE (Superior) */
+    /* ZONA SECRETA DE DOBLE TOQUE (Superior) - Z-Index prioritario */
     #zona-secreta {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
-      height: 60px; /* Área de la barra de estado superior */
-      z-index: 8888;
+      height: 70px; /* Área amplia para facilitar el toque cerca de la status bar */
+      z-index: 10000;
       background: transparent;
+      touch-action: manipulation;
     }
 
     /* MENÚ DE SELECCIÓN INICIAL Y CONFIGURACIÓN */
@@ -174,17 +189,20 @@
     let ultimoToqueArriba = 0;
 
     zonaSecreta.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
       const ahora = new Date().getTime();
       const diferencia = ahora - ultimoToqueArriba;
 
-      if (diferencia < 300 && diferencia > 0) {
+      if (diferencia < 400 && diferencia > 0) {
         // Doble toque detectado en la zona superior
         capaMenu.style.display = 'flex';
         carta.style.display = 'none';
         isDragging = false;
       }
       ultimoToqueArriba = ahora;
-    });
+    }, { passive: false });
 
     function ocultarCarta() {
       carta.style.transition = 'opacity 0.1s ease-out';
@@ -201,8 +219,8 @@
 
     // 3. CONTROL TÁCTIL DE LA CARTA
     window.addEventListener('touchstart', (e) => {
-      // Si el menú está abierto, ignorar interacción de arrastre
-      if (capaMenu.style.display !== 'none') return;
+      // Si el menú está abierto o el toque es en la zona secreta, ignorar
+      if (capaMenu.style.display !== 'none' || e.target === zonaSecreta) return;
 
       const touch = e.touches[0];
       lastTouchX = touch.clientX;
