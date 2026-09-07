@@ -37,7 +37,7 @@
 
     #carta {
       position: absolute;
-      width: 390px; /* Tamaño reducido al 50% */
+      width: 430px; /* Incrementado un 10% respecto a 390px */
       height: auto;
       will-change: transform, opacity;
       transform: translate3d(0,0,0);
@@ -140,6 +140,17 @@
         e.stopPropagation();
         const nuevaImagen = btn.getAttribute('data-imagen');
         carta.src = nuevaImagen;
+
+        // Resetear posición de la carta al centro
+        currentX = 0;
+        currentY = 0;
+        startX = 0;
+        startY = 0;
+        carta.style.transform = `translate3d(0px, 0px, 0)`;
+
+        // Mostrar la carta inmediatamente en el centro
+        carta.style.display = 'block';
+        carta.style.opacity = '1';
 
         // Ocultar menú
         capaMenu.style.display = 'none';
