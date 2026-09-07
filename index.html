@@ -7,7 +7,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>TV</title>
 
-  <!-- ICONO PARA LA PANTALLA DE INICIO DE IOS -->
   <link rel="apple-touch-icon" href="icon.png?v=2">
 
   <style>
@@ -33,7 +32,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
+
     #carta {
       position: absolute;
       width: 780px;
@@ -42,57 +43,136 @@
       transform: translate3d(0,0,0);
       opacity: 1;
       transition: opacity 0.1s ease-out;
-
-      /* EVITA EL MENÚ EMERGENTE Y SELECCIÓN EN IOS */
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       pointer-events: auto;
+      display: none; /* Oculta al inicio */
     }
-    #capa-permiso {
+
+    /* ZONA SECRETA DE DOBLE TOQUE (Superior) */
+    #zona-secreta {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 60px; /* Área de la barra de estado superior */
+      z-index: 8888;
+      background: transparent;
+    }
+
+    /* MENÚ DE SELECCIÓN INICIAL Y CONFIGURACIÓN */
+    #capa-menu {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
       z-index: 9999;
-      background: transparent;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      color: #fff;
+    }
+
+    #capa-menu h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.2rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-baraja {
+      width: 220px;
+      padding: 14px 20px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 500;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-baraja:active {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(0.97);
     }
   </style>
 </head>
 <body>
 
-  <div id="capa-permiso"></div>
-  <img id="carta" src="carta.png" alt="Carta Doblada">
+  <!-- Zona transparente superior para reactivar el menú con doble toque -->
+  <div id="zona-secreta"></div>
+
+  <!-- Menú de Selección -->
+  <div id="capa-menu">
+    <h2>Selecciona el Dorso</h2>
+    <div class="btn-baraja" data-imagen="bicycle-roja.png">Bicycle (Roja)</div>
+    <div class="btn-baraja" data-imagen="bicycle-azul.png">Bicycle (Azul)</div>
+    <div class="btn-baraja" data-imagen="tallyho-roja.png">Tally-Ho (Roja)</div>
+    <div class="btn-baraja" data-imagen="tallyho-azul.png">Tally-Ho (Azul)</div>
+  </div>
+
+  <img id="carta" src="bicycle-roja.png" alt="Carta Doblada">
 
   <script>
     const carta = document.getElementById('carta');
-    const capaPermiso = document.getElementById('capa-permiso');
+    const capaMenu = document.getElementById('capa-menu');
+    const zonaSecreta = document.getElementById('zona-secreta');
+    const botones = document.querySelectorAll('.btn-baraja');
 
     let isDragging = false;
     let startX = 0, startY = 0;
     let currentX = 0, currentY = 0;
     let ticking = false;
-
-    // Variables para comprobar la posición real de salida
     let lastTouchX = 0, lastTouchY = 0;
 
-    // Activar acelerómetro en iOS
-    capaPermiso.addEventListener('click', () => {
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission()
-          .then(response => {
-            if (response === 'granted') {
-              window.addEventListener('devicemotion', manejarAgitacion, true);
-            }
-          })
-          .catch(console.error)
-          .finally(() => {
-            capaPermiso.remove();
-          });
-      } else {
-        window.addEventListener('devicemotion', manejarAgitacion, true);
-        capaPermiso.remove();
+    // 1. SELECCIÓN DE DORSOS Y PERMISO SENSOR
+    botones.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nuevaImagen = btn.getAttribute('data-imagen');
+        carta.src = nuevaImagen;
+
+        // Ocultar menú
+        capaMenu.style.display = 'none';
+
+        // Solicitar permisos de movimiento si es necesario en iOS
+        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission()
+            .then(response => {
+              if (response === 'granted') {
+                window.addEventListener('devicemotion', manejarAgitacion, true);
+              }
+            })
+            .catch(console.error);
+        } else {
+          window.addEventListener('devicemotion', manejarAgitacion, true);
+        }
+      });
+    });
+
+    // 2. ACTIVACIÓN SECRETA DEL MENÚ (Doble toque arriba)
+    let ultimoToqueArriba = 0;
+
+    zonaSecreta.addEventListener('touchstart', (e) => {
+      const ahora = new Date().getTime();
+      const diferencia = ahora - ultimoToqueArriba;
+
+      if (diferencia < 300 && diferencia > 0) {
+        // Doble toque detectado en la zona superior
+        capaMenu.style.display = 'flex';
+        carta.style.display = 'none';
+        isDragging = false;
       }
+      ultimoToqueArriba = ahora;
     });
 
     function ocultarCarta() {
@@ -108,8 +188,11 @@
       isDragging = false;
     }
 
-    // CONTROL TÁCTIL
+    // 3. CONTROL TÁCTIL DE LA CARTA
     window.addEventListener('touchstart', (e) => {
+      // Si el menú está abierto, ignorar interacción de arrastre
+      if (capaMenu.style.display !== 'none') return;
+
       const touch = e.touches[0];
       lastTouchX = touch.clientX;
       lastTouchY = touch.clientY;
@@ -140,7 +223,7 @@
           
           const screenWidth = window.innerWidth;
           const screenHeight = window.innerHeight;
-          const sensibilidad = 60; // Detección precisa de los bordes físicos de la pantalla
+          const sensibilidad = 60;
 
           if (
             lastTouchX <= sensibilidad || 
@@ -157,7 +240,6 @@
       }
     }, { passive: false });
 
-    // COMPROBACIÓN EN TOUCHEND
     window.addEventListener('touchend', () => {
       if (!isDragging) return;
 
@@ -165,7 +247,6 @@
       const screenHeight = window.innerHeight;
       const sensibilidad = 60;
 
-      // Solo oculta al soltar si el último toque quedó pegado a las orillas
       if (
         lastTouchX <= sensibilidad || 
         lastTouchX >= screenWidth - sensibilidad || 
@@ -178,11 +259,11 @@
       isDragging = false;
     });
 
-    // SENSOR DE MOVIMIENTO (Aparición y reseteo exacto al centro)
+    // 4. SENSOR DE MOVIMIENTO (Agitación)
     let lastX = null, lastY = null, lastZ = null;
 
     function manejarAgitacion(e) {
-      if (isDragging) return;
+      if (isDragging || capaMenu.style.display !== 'none') return;
 
       const acc = e.accelerationIncludingGravity || e.acceleration;
       if (!acc) return;
@@ -195,7 +276,6 @@
         const fuerza = Math.abs(deltaX) + Math.abs(deltaY) + Math.abs(deltaZ);
 
         if (fuerza > 12) {
-          // Se fuerzan las coordenadas a 0 para que la carta se considere centrada
           currentX = 0;
           currentY = 0;
           startX = 0;
