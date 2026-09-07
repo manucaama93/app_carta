@@ -16,13 +16,24 @@
       user-select: none;
       -webkit-user-select: none;
     }
-    body, html {
+
+    html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+    }
+
+    body {
       margin: 0;
       padding: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100dvw;
+      height: 100dvh;
+      position: fixed;
+      top: 0;
+      left: 0;
       background-image: url('fondo.png?v=2');
-      background-position: center top;
+      background-position: center center;
       background-size: cover;
       background-repeat: no-repeat;
       background-color: #000;
@@ -44,7 +55,7 @@
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       pointer-events: auto;
-      display: none; /* Oculta al inicio */
+      display: none;
     }
 
     /* ZONA SECRETA DE DOBLE TOQUE (Superior) */
@@ -52,7 +63,7 @@
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
+      width: 100%;
       height: 70px;
       z-index: 10000;
       background: transparent;
@@ -64,8 +75,8 @@
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       z-index: 9999;
       background: rgba(0, 0, 0, 0.85);
       backdrop-filter: blur(10px);
@@ -107,10 +118,8 @@
 </head>
 <body>
 
-  <!-- Zona transparente superior para reactivar el menú con doble toque -->
   <div id="zona-secreta"></div>
 
-  <!-- Menú de Selección -->
   <div id="capa-menu">
     <h2>Selecciona el Dorso</h2>
     <div class="btn-baraja" data-imagen="bicycle-roja.png">Bicycle (Roja)</div>
@@ -133,30 +142,24 @@
     let ticking = false;
     let lastTouchX = 0, lastTouchY = 0;
 
-    // 1. SELECCIÓN DE DORSOS
     botones.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const nuevaImagen = btn.getAttribute('data-imagen');
         carta.src = nuevaImagen;
 
-        // Resetear posición de la carta al centro
         currentX = 0;
         currentY = 0;
         startX = 0;
         startY = 0;
         carta.style.transform = `translate3d(0px, 0px, 0)`;
 
-        // Mostrar la carta en el centro
         carta.style.display = 'block';
         carta.style.opacity = '1';
-
-        // Ocultar menú
         capaMenu.style.display = 'none';
       });
     });
 
-    // 2. ACTIVACIÓN SECRETA DEL MENÚ (Doble toque arriba)
     let ultimoToqueArriba = 0;
 
     zonaSecreta.addEventListener('touchstart', (e) => {
@@ -187,7 +190,6 @@
       isDragging = false;
     }
 
-    // 3. CONTROL TÁCTIL DE LA CARTA
     window.addEventListener('touchstart', (e) => {
       if (capaMenu.style.display !== 'none' || e.target === zonaSecreta) return;
 
