@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="screen-orientation" content="portrait">
   <title>TV</title>
 
   <link rel="apple-touch-icon" href="icon.png?v=2">
@@ -24,29 +23,14 @@
       height: 100vh;
       background-image: url('fondo.png?v=2');
       background-position: center top;
-      background-size: 100% 100%;
+      background-size: cover;
       background-repeat: no-repeat;
       background-color: #000;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
       overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    /* BLOQUEO DE ORIENTACIÓN: Si se gira el teléfono en horizontal, forzamos mantener la vista en vertical */
-    @media screen and (orientation: landscape) {
-      html {
-        transform: rotate(-90deg);
-        transform-origin: center center;
-        width: 100vh;
-        height: 100vw;
-        position: absolute;
-        top: calc(50% - 50vw);
-        left: calc(50% - 50vh);
-      }
     }
 
     #carta {
@@ -63,13 +47,13 @@
       display: none; /* Oculta al inicio */
     }
 
-    /* ZONA SECRETA DE DOBLE TOQUE (Superior) - Z-Index prioritario */
+    /* ZONA SECRETA DE DOBLE TOQUE (Superior) */
     #zona-secreta {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
-      height: 70px; /* Área amplia para facilitar el toque cerca de la status bar */
+      height: 70px;
       z-index: 10000;
       background: transparent;
       touch-action: manipulation;
@@ -149,7 +133,7 @@
     let ticking = false;
     let lastTouchX = 0, lastTouchY = 0;
 
-    // 1. SELECCIÓN DE DORSOS Y PERMISO SENSOR
+    // 1. SELECCIÓN DE DORSOS
     botones.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -163,25 +147,12 @@
         startY = 0;
         carta.style.transform = `translate3d(0px, 0px, 0)`;
 
-        // Mostrar la carta inmediatamente en el centro
+        // Mostrar la carta en el centro
         carta.style.display = 'block';
         carta.style.opacity = '1';
 
         // Ocultar menú
         capaMenu.style.display = 'none';
-
-        // Solicitar permisos de movimiento si es necesario en iOS
-        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-          DeviceMotionEvent.requestPermission()
-            .then(response => {
-              if (response === 'granted') {
-                window.addEventListener('devicemotion', manejarAgitacion, true);
-              }
-            })
-            .catch(console.error);
-        } else {
-          window.addEventListener('devicemotion', manejarAgitacion, true);
-        }
       });
     });
 
@@ -196,7 +167,6 @@
       const diferencia = ahora - ultimoToqueArriba;
 
       if (diferencia < 400 && diferencia > 0) {
-        // Doble toque detectado en la zona superior
         capaMenu.style.display = 'flex';
         carta.style.display = 'none';
         isDragging = false;
@@ -219,7 +189,6 @@
 
     // 3. CONTROL TÁCTIL DE LA CARTA
     window.addEventListener('touchstart', (e) => {
-      // Si el menú está abierto o el toque es en la zona secreta, ignorar
       if (capaMenu.style.display !== 'none' || e.target === zonaSecreta) return;
 
       const touch = e.touches[0];
@@ -287,40 +256,6 @@
 
       isDragging = false;
     });
-
-    // 4. SENSOR DE MOVIMIENTO (Agitación)
-    let lastX = null, lastY = null, lastZ = null;
-
-    function manejarAgitacion(e) {
-      if (isDragging || capaMenu.style.display !== 'none') return;
-
-      const acc = e.accelerationIncludingGravity || e.acceleration;
-      if (!acc) return;
-
-      if (lastX !== null) {
-        const deltaX = acc.x - lastX;
-        const deltaY = acc.y - lastY;
-        const deltaZ = acc.z - lastZ;
-
-        const fuerza = Math.abs(deltaX) + Math.abs(deltaY) + Math.abs(deltaZ);
-
-        if (fuerza > 12) {
-          currentX = 0;
-          currentY = 0;
-          startX = 0;
-          startY = 0;
-          
-          carta.style.transform = `translate3d(0px, 0px, 0)`;
-          carta.style.display = 'block';
-          carta.style.opacity = '1';
-          carta.style.transition = 'none';
-        }
-      }
-
-      lastX = acc.x;
-      lastY = acc.y;
-      lastZ = acc.z;
-    }
   </script>
 </body>
 </html>
