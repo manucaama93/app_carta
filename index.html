@@ -2,10 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <!-- Agregamos viewport-fit=cover para forzar pantalla completa sin bordes -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>TV</title>
 
   <link rel="apple-touch-icon" href="icon.png?v=2">
@@ -27,22 +26,16 @@
       background-color: #000;
     }
 
-    /* CONTENEDOR DE FONDO A PANTALLA COMPLETA ABSOLUTA */
-    #capa-fondo {
+    /* IMAGEN DE FONDO FORZADA A PANTALLA COMPLETA ABSOLUTA */
+    #img-fondo {
       position: fixed;
-      /* Los valores negativos y env() obligan a la WebApp a invadir los bordes de la pantalla de iOS */
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
       width: 100vw;
       height: 100vh;
-      height: -webkit-fill-available;
-      background-image: url('fondo.png?v=2');
-      background-position: center top;
-      background-size: cover;
-      background-repeat: no-repeat;
+      object-fit: fill;
       z-index: 1;
+      pointer-events: none;
     }
 
     #carta {
@@ -120,8 +113,8 @@
 </head>
 <body>
 
-  <!-- Capa independiente para forzar el fondo de pantalla completo en iOS -->
-  <div id="capa-fondo"></div>
+  <!-- Imagen de fondo como tag <img> para ignorar margenes de iOS -->
+  <img id="img-fondo" src="fondo.png?v=2" alt="Fondo">
 
   <div id="zona-secreta"></div>
 
