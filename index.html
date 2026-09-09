@@ -26,14 +26,17 @@
       background-color: #000;
     }
 
-    /* IMAGEN DE FONDO FORZADA A PANTALLA COMPLETA ABSOLUTA */
+    /* CAPA DE FONDO ALINEADA CON EL ÁREA SEGURA DE IOS */
     #img-fondo {
       position: fixed;
-      top: 0;
+      top: -12px; /* Ajuste preciso para alinear con el reloj/status bar */
       left: 0;
       width: 100vw;
-      height: 100vh;
-      object-fit: fill;
+      height: calc(100vh + 12px - env(safe-area-inset-bottom, 0px));
+      background-image: url('fondo.png?v=2');
+      background-position: center top;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
       z-index: 1;
       pointer-events: none;
     }
@@ -113,8 +116,8 @@
 </head>
 <body>
 
-  <!-- Imagen de fondo como tag <img> para ignorar margenes de iOS -->
-  <img id="img-fondo" src="fondo.png?v=2" alt="Fondo">
+  <!-- Capa de fondo estructurada como DIV para un ajuste exacto del alto -->
+  <div id="img-fondo"></div>
 
   <div id="zona-secreta"></div>
 
