@@ -52,6 +52,38 @@
       z-index: 10;
     }
 
+    /* ANIMACIÓN BASADA EN TUS 4 IMÁGENES DE MUESTRA */
+    @keyframes caidaRebote {
+      /* 1. Posición inicial (Incio del despliegue en diagonal desde la derecha) */
+      0% {
+        transform: translate3d(20vw, 35vh, 0) rotate(var(--rotacion-base, 0deg));
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      /* 2. Impacto con la pared izquierda (carta2.jpg) */
+      40% {
+        transform: translate3d(-30px, 60vh, 0) rotate(calc(var(--rotacion-base, 0deg) - 4deg));
+      }
+      /* 3. Caída hasta el fondo inferior izquierdo (carta3.jpg) */
+      75% {
+        transform: translate3d(10px, calc(100vh - 360px), 0) rotate(var(--rotacion-base, 0deg));
+      }
+      /* 4. Rebote leve hacia arriba (efecto rebote suelo) */
+      88% {
+        transform: translate3d(15px, calc(100vh - 390px), 0) rotate(var(--rotacion-base, 0deg));
+      }
+      /* 5. Asentamiento final en la base (carta4.jpg) */
+      100% {
+        transform: translate3d(10px, calc(100vh - 360px), 0) rotate(var(--rotacion-base, 0deg));
+      }
+    }
+
+    .animar-caida {
+      animation: caidaRebote 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
     /* ZONA SECRETA DE DOBLE TOQUE */
     #zona-secreta {
       position: fixed;
@@ -135,87 +167,74 @@
     let isDragging = false;
     let startX = 0, startY = 0;
     let currentX = 0, currentY = 0;
+    let ticking = false;
+    let lastTouchX = 0, lastTouchY = 0;
     let rotacionActual = '0deg';
+    let enAnimacion = false;
 
-    // --- VARIABLES MOTOR FÍSICO DE INCLINACIÓN Y REBOTE ---
-    let velX = 0;
-    let velY = 0;
-    let inclinacionX = 0; // Giro lateral (gamma)
-    let inclinacionY = 0; // Giro frontal (beta)
-    let animacionFisicaID = null;
-
-    const friccion = 0.94;       // Amortiguación de movimiento
-    const sensibilidad = 0.15;   // Fuerza de la gravedad al inclinar
-    const elasticidad = 0.6;     // Factor de rebote (0.6 = rebote con pérdida natural de fuerza)
-
-    function activarSensores() {
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission()
+    // --- DETECCIÓN DE SHAKE / SACUDIÓN ---
+    function activarSensoresMovimiento() {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission()
           .then(permissionState => {
             if (permissionState === 'granted') {
-              window.addEventListener('deviceorientation', manejarInclinacion);
+              window.addEventListener('devicemotion', detectarAgitamiento);
             }
           })
           .catch(console.error);
       } else {
-        window.addEventListener('deviceorientation', manejarInclinacion);
+        window.addEventListener('devicemotion', detectarAgitamiento);
       }
     }
 
-    function manejarInclinacion(e) {
-      // Gamma: izquierda/derecha (-90 a 90)
-      // Beta: frente/atrás (-180 a 180)
-      inclinacionX = e.gamma || 0;
-      inclinacionY = (e.beta || 0) - 45; // Restamos 45° asumiendo que el teléfono se sostiene en ángulo natural
+    let ultimaX = 0, ultimaY = 0, ultimaZ = 0;
+    let umbralAgitamiento = 22;
+
+    function detectarAgitamiento(event) {
+      if (enAnimacion || isDragging) return;
+
+      const acc = event.accelerationIncludingGravity;
+      if (!acc) return;
+
+      const deltaX = Math.abs(acc.x - ultimaX);
+      const deltaY = Math.abs(acc.y - ultimaY);
+      const deltaZ = Math.abs(acc.z - ultimaZ);
+
+      // Sacudida de arriba a abajo principal
+      if (deltaY > 15 || (deltaX + deltaY + deltaZ > umbralAgitamiento)) {
+        ejecutarAnimacionDiagonal();
+      }
+
+      ultimaX = acc.x;
+      ultimaY = acc.y;
+      ultimaZ = acc.z;
     }
 
-    function actualizarFisica() {
-      if (carta.style.display !== 'none' && !isDragging) {
-        // Aceleración física
-        velX += inclinacionX * sensibilidad;
-        velY += inclinacionY * sensibilidad;
+    function ejecutarAnimacionDiagonal() {
+      enAnimacion = true;
+      carta.style.display = 'block';
+      carta.style.setProperty('--rotacion-base', rotacionActual);
+      carta.classList.remove('animar-caida');
+      
+      // Forzar reflow para reiniciar la animación
+      void carta.offsetWidth;
+      carta.classList.add('animar-caida');
 
-        // Aplicar rozamiento
-        velX *= friccion;
-        velY *= friccion;
-
-        currentX += velX;
-        currentY += velY;
-
-        // Dimensiones de la pantalla y la carta para colisiones precisas
-        const anchoPantalla = window.innerWidth;
-        const altoPantalla = window.innerHeight;
-        const anchoCarta = carta.offsetWidth || 430;
-        const altoCarta = carta.offsetHeight || 600;
-
-        // Borde Izquierdo y Derecho
-        if (currentX < 0) {
-          currentX = 0;
-          velX = -velX * elasticidad; // Invertir dirección y rebotar
-        } else if (currentX + anchoCarta > anchoPantalla) {
-          currentX = anchoPantalla - anchoCarta;
-          velX = -velX * elasticidad;
-        }
-
-        // Borde Superior e Inferior
-        if (currentY < 0) {
-          currentY = 0;
-          velY = -velY * elasticidad;
-        } else if (currentY + altoCarta > altoPantalla) {
-          currentY = altoPantalla - altoCarta;
-          velY = -velY * elasticidad;
-        }
-
+      // Al finalizar la animación, fijar las coordenadas donde reposó la carta
+      setTimeout(() => {
+        carta.classList.remove('animar-caida');
+        currentX = 10;
+        currentY = window.innerHeight - 360;
         carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${rotacionActual})`;
-      }
-
-      animacionFisicaID = requestAnimationFrame(actualizarFisica);
+        enAnimacion = false;
+      }, 750);
     }
 
+    // --- SELECCIÓN EN EL MENÚ ---
     botones.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        activarSensores();
+        activarSensoresMovimiento();
 
         const nuevaImagen = btn.getAttribute('data-imagen');
         const nuevoFiltro = btn.getAttribute('data-filter');
@@ -224,22 +243,16 @@
         carta.src = nuevaImagen;
         carta.style.filter = nuevoFiltro;
 
-        currentX = (window.innerWidth - 430) / 2; // Centrar al inicio
-        currentY = (window.innerHeight - 600) / 2;
-        velX = 0;
-        velY = 0;
+        currentX = 0;
+        currentY = 0;
+        carta.style.transform = `translate3d(0px, 0px, 0) rotate(${rotacionActual})`;
 
-        carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${rotacionActual})`;
-        carta.style.display = 'block';
-        carta.style.opacity = '1';
+        carta.style.display = 'none'; // Espera a la sacudida para salir
         capaMenu.style.display = 'none';
-
-        if (!animacionFisicaID) {
-          actualizarFisica();
-        }
       });
     });
 
+    // --- DOBLE TOQUE SUPERIOR (ZONA SECRETA) ---
     let ultimoToqueArriba = 0;
 
     zonaSecreta.addEventListener('touchstart', (e) => {
@@ -259,35 +272,86 @@
       }
     }, { passive: false });
 
+    function ocultarCarta() {
+      carta.style.transition = 'opacity 0.1s ease-out';
+      carta.style.opacity = '0';
+      
+      setTimeout(() => {
+        if (carta.style.opacity === '0') {
+          carta.style.display = 'none';
+        }
+      }, 100);
+
+      isDragging = false;
+    }
+
+    // --- ARRASTRE TÁCTIL (POST-ANIMACIÓN) ---
     window.addEventListener('touchstart', (e) => {
-      if (capaMenu.style.display !== 'none' || e.target === zonaSecreta) return;
+      if (capaMenu.style.display !== 'none' || e.target === zonaSecreta || enAnimacion) return;
 
       const touch = e.touches[0];
+      lastTouchX = touch.clientX;
+      lastTouchY = touch.clientY;
 
       carta.style.display = 'block';
       carta.style.opacity = '1';
       carta.style.transition = 'none';
 
       isDragging = true;
-      velX = 0;
-      velY = 0;
       startX = touch.clientX - currentX;
       startY = touch.clientY - currentY;
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
+      if (!isDragging || enAnimacion) return;
       e.preventDefault();
 
       const touch = e.touches[0];
+      lastTouchX = touch.clientX;
+      lastTouchY = touch.clientY;
 
       currentX = touch.clientX - startX;
       currentY = touch.clientY - startY;
 
-      carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${rotacionActual})`;
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${rotacionActual})`;
+          
+          const screenWidth = window.innerWidth;
+          const screenHeight = window.innerHeight;
+          const sensibilidad = 60;
+
+          if (
+            lastTouchX <= sensibilidad || 
+            lastTouchX >= screenWidth - sensibilidad || 
+            lastTouchY <= sensibilidad || 
+            lastTouchY >= screenHeight - sensibilidad
+          ) {
+            ocultarCarta();
+          }
+          
+          ticking = false;
+        });
+        ticking = true;
+      }
     }, { passive: false });
 
     window.addEventListener('touchend', () => {
+      if (!isDragging || enAnimacion) return;
+
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const sensibilidad = 60;
+
+      if (
+        lastTouchX <= sensibilidad || 
+        lastTouchX >= screenWidth - sensibilidad || 
+        lastTouchY <= sensibilidad || 
+        lastTouchY >= screenHeight - sensibilidad
+      ) {
+        ocultarCarta();
+      }
+
       isDragging = false;
     });
   </script>
