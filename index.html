@@ -27,18 +27,20 @@
       background-color: #000;
     }
 
-    /* Ajuste directo 1:1 fijado a las 4 esquinas de la pantalla */
-    #img-fondo {
+    /* Contenedor fijado a las 4 esquinas reales del viewport (incluye safe areas) */
+    #bg-wrap {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;              /* fallback para navegadores antiguos */
-      height: 100dvh;             /* alto real dinámico: ignora la franja del home indicator */
-      height: -webkit-fill-available;
-      object-fit: cover;
+      inset: 0;               /* equivale a top/right/bottom/left: 0 sin fijar width/height */
+      overflow: hidden;
       z-index: 1;
       pointer-events: none;
+    }
+
+    #img-fondo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     #carta {
@@ -117,7 +119,9 @@
 <body>
 
   <!-- Imagen de fondo que calza directamente con la captura del iPhone -->
-  <img id="img-fondo" src="fondo.png?v=2" alt="Fondo">
+  <div id="bg-wrap">
+    <img id="img-fondo" src="fondo.png?v=3" alt="Fondo">
+  </div>
 
   <div id="zona-secreta"></div>
 
@@ -136,15 +140,6 @@
     const capaMenu = document.getElementById('capa-menu');
     const zonaSecreta = document.getElementById('zona-secreta');
     const botones = document.querySelectorAll('.btn-baraja');
-    const imgFondo = document.getElementById('img-fondo');
-
-    // Fix de respaldo para el margen negro inferior en modo standalone (Add to Home Screen)
-    function ajustarAltura() {
-      imgFondo.style.height = window.innerHeight + 'px';
-    }
-    window.addEventListener('resize', ajustarAltura);
-    window.addEventListener('orientationchange', ajustarAltura);
-    ajustarAltura();
 
     let isDragging = false;
     let startX = 0, startY = 0;
