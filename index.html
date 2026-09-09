@@ -27,14 +27,15 @@
       background-color: #000;
     }
 
-    /* Fondo ajustado al borde inferior y desplazado */
+    /* Ajuste directo 1:1 fijado a las 4 esquinas de la pantalla */
     #img-fondo {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: calc(100vh + env(safe-area-inset-bottom, 20px));
-      transform: translateY(env(safe-area-inset-bottom, 20px));
+      width: 100%;
+      height: 100vh;              /* fallback para navegadores antiguos */
+      height: 100dvh;             /* alto real dinámico: ignora la franja del home indicator */
+      height: -webkit-fill-available;
       object-fit: cover;
       z-index: 1;
       pointer-events: none;
@@ -135,6 +136,15 @@
     const capaMenu = document.getElementById('capa-menu');
     const zonaSecreta = document.getElementById('zona-secreta');
     const botones = document.querySelectorAll('.btn-baraja');
+    const imgFondo = document.getElementById('img-fondo');
+
+    // Fix de respaldo para el margen negro inferior en modo standalone (Add to Home Screen)
+    function ajustarAltura() {
+      imgFondo.style.height = window.innerHeight + 'px';
+    }
+    window.addEventListener('resize', ajustarAltura);
+    window.addEventListener('orientationchange', ajustarAltura);
+    ajustarAltura();
 
     let isDragging = false;
     let startX = 0, startY = 0;
