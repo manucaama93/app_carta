@@ -52,16 +52,16 @@
       z-index: 10;
     }
 
-    /* ZONA SECRETA DE DOBLE TOQUE (Superior) */
+    /* ZONA SECRETA DE DOBLE TOQUE (Ampliada a 110px de alto) */
     #zona-secreta {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
-      height: 70px;
+      height: 110px;
       z-index: 10000;
       background: transparent;
-      touch-action: manipulation;
+      touch-action: none;
     }
 
     /* MENÚ DE SELECCIÓN INICIAL Y CONFIGURACIÓN */
@@ -118,7 +118,6 @@
 
   <div id="capa-menu">
     <h2>Selecciona el Dorso</h2>
-    <!-- Rotación aumentada a 11deg para todas excepto la Bicycle Azul que se mantiene a 0deg -->
     <div class="btn-baraja" data-imagen="bicycle-roja.png" data-filter="contrast(112%) saturate(85%) brightness(82%)" data-rotate="11deg">Bicycle (Roja)</div>
     <div class="btn-baraja" data-imagen="bicycle-azul.png" data-filter="contrast(100%) saturate(100%) brightness(100%)" data-rotate="0deg">Bicycle (Azul)</div>
     <div class="btn-baraja" data-imagen="tallyho-roja.png" data-filter="contrast(100%) saturate(100%) brightness(100%)" data-rotate="11deg">Tally-Ho (Roja)</div>
@@ -164,19 +163,22 @@
 
     let ultimoToqueArriba = 0;
 
+    // Detección optimizada de doble toque
     zonaSecreta.addEventListener('touchstart', (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      const ahora = new Date().getTime();
+      const ahora = Date.now();
       const diferencia = ahora - ultimoToqueArriba;
 
-      if (diferencia < 400 && diferencia > 0) {
+      if (diferencia < 550 && diferencia > 30) {
         capaMenu.style.display = 'flex';
         carta.style.display = 'none';
         isDragging = false;
+        ultimoToqueArriba = 0;
+      } else {
+        ultimoToqueArriba = ahora;
       }
-      ultimoToqueArriba = ahora;
     }, { passive: false });
 
     function ocultarCarta() {
