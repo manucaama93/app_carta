@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <!-- Status bar translúcida para que la imagen ocupe el notch/reloj sin bordes -->
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>TV</title>
 
@@ -20,30 +19,22 @@
 
     html, body {
       width: 100%;
-      height: 100%;
+      height: 100vh;
       margin: 0;
       padding: 0;
       overflow: hidden;
       background-color: #000;
     }
 
-    /* Fijado a la resolución CSS exacta del iPhone 12 (390 x 844 pt) */
-    #bg-wrap {
+    #img-fondo {
       position: fixed;
       top: 0;
       left: 0;
-      width: 390px;
-      height: 844px;
-      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      object-fit: fill;
       z-index: 1;
       pointer-events: none;
-    }
-
-    #img-fondo {
-      width: 390px;
-      height: 844px;
-      object-fit: cover;
-      display: block;
     }
 
     #carta {
@@ -121,10 +112,7 @@
 </head>
 <body>
 
-  <!-- Imagen de fondo que calza directamente con la captura del iPhone -->
-  <div id="bg-wrap">
-    <img id="img-fondo" src="fondo.png?v=4" alt="Fondo">
-  </div>
+  <img id="img-fondo" src="fondo.png?v=2" alt="Fondo">
 
   <div id="zona-secreta"></div>
 
