@@ -27,15 +27,14 @@
       background-color: #000;
     }
 
-    /* Ajuste directo 1:1 fijado a las 4 esquinas de la pantalla */
+    /* Fondo ajustado al borde inferior y desplazado */
     #img-fondo {
       position: fixed;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: calc(100vh + env(safe-area-inset-bottom, 20px));
+      transform: translateY(env(safe-area-inset-bottom, 20px));
       object-fit: cover;
       z-index: 1;
       pointer-events: none;
