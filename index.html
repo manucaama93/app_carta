@@ -52,7 +52,7 @@
       z-index: 10;
     }
 
-    /* ANIMACIÓN DE TEMBLOR (SHAKE) */
+    /* ANIMACIÓN DE TEMBLOR (SHAKE) REPETITIVO */
     @keyframes temblor {
       0% { transform: translate3d(var(--pos-x, 0px), var(--pos-y, 0px), 0) rotate(var(--rotacion-base, 0deg)); }
       15% { transform: translate3d(calc(var(--pos-x, 0px) - 12px), calc(var(--pos-y, 0px) + 8px), 0) rotate(calc(var(--rotacion-base, 0deg) - 8deg)); }
@@ -63,8 +63,9 @@
       100% { transform: translate3d(var(--pos-x, 0px), var(--pos-y, 0px), 0) rotate(var(--rotacion-base, 0deg)); }
     }
 
+    /* Ciclos repetidos para ampliar la duración */
     .animar-temblor {
-      animation: temblor 0.4s ease-in-out;
+      animation: temblor 0.4s ease-in-out infinite;
     }
 
     /* ZONA SECRETA DE DOBLE TOQUE */
@@ -200,11 +201,12 @@
       carta.style.setProperty('--pos-y', `${currentY}px`);
       carta.classList.add('animar-temblor');
 
+      // Se mantiene temblando durante 1200ms (1.2s)
       setTimeout(() => {
         carta.classList.remove('animar-temblor');
         carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${rotacionActual})`;
         animandoAgitamiento = false;
-      }, 400);
+      }, 1200);
     }
 
     botones.forEach(btn => {
