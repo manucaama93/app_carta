@@ -56,9 +56,6 @@
       -webkit-user-select: none;
       pointer-events: auto;
       display: none;
-
-      /* FILTRO PARA MEJORAR EL COLOR Y EL CONTRASTE DE LAS CARTAS */
-      filter: contrast(115%) saturate(120%) brightness(60%);
     }
 
     /* ZONA SECRETA DE DOBLE TOQUE (Superior) */
@@ -125,10 +122,11 @@
 
   <div id="capa-menu">
     <h2>Selecciona el Dorso</h2>
-    <div class="btn-baraja" data-imagen="bicycle-roja.png">Bicycle (Roja)</div>
-    <div class="btn-baraja" data-imagen="bicycle-azul.png">Bicycle (Azul)</div>
-    <div class="btn-baraja" data-imagen="tallyho-roja.png">Tally-Ho (Roja)</div>
-    <div class="btn-baraja" data-imagen="tallyho-azul.png">Tally-Ho (Azul)</div>
+    <!-- Valores iniciales limpios al 100% (sin alteración) -->
+    <div class="btn-baraja" data-imagen="bicycle-roja.png" data-filter="contrast(100%) saturate(100%) brightness(100%)">Bicycle (Roja)</div>
+    <div class="btn-baraja" data-imagen="bicycle-azul.png" data-filter="contrast(100%) saturate(100%) brightness(100%)">Bicycle (Azul)</div>
+    <div class="btn-baraja" data-imagen="tallyho-roja.png" data-filter="contrast(100%) saturate(100%) brightness(100%)">Tally-Ho (Roja)</div>
+    <div class="btn-baraja" data-imagen="tallyho-azul.png" data-filter="contrast(100%) saturate(100%) brightness(100%)">Tally-Ho (Azul)</div>
   </div>
 
   <img id="carta" src="bicycle-roja.png" alt="Carta Doblada">
@@ -149,7 +147,10 @@
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const nuevaImagen = btn.getAttribute('data-imagen');
+        const nuevoFiltro = btn.getAttribute('data-filter');
+
         carta.src = nuevaImagen;
+        carta.style.filter = nuevoFiltro;
 
         currentX = 0;
         currentY = 0;
