@@ -52,7 +52,22 @@
       z-index: 10;
     }
 
-    /* ZONA SECRETA DE DOBLE TOQUE (Ampliada a 110px de alto) */
+    /* ANIMACIÓN DE TEMBLOR (SHAKE) */
+    @keyframes temblor {
+      0% { transform: translate3d(0, 0, 0) rotate(var(--rotacion-base, 0deg)); }
+      15% { transform: translate3d(-12px, 8px, 0) rotate(calc(var(--rotacion-base, 0deg) - 8deg)); }
+      30% { transform: translate3d(12px, -8px, 0) rotate(calc(var(--rotacion-base, 0deg) + 8deg)); }
+      45% { transform: translate3d(-10px, -6px, 0) rotate(calc(var(--rotacion-base, 0deg) - 5deg)); }
+      60% { transform: translate3d(10px, 6px, 0) rotate(calc(var(--rotacion-base, 0deg) + 5deg)); }
+      75% { transform: translate3d(-5px, 3px, 0) rotate(calc(var(--rotacion-base, 0deg) - 2deg)); }
+      100% { transform: translate3d(0, 0, 0) rotate(var(--rotacion-base, 0deg)); }
+    }
+
+    .animar-temblor {
+      animation: temblor 0.4s ease-in-out infinite;
+    }
+
+    /* ZONA SECRETA DE DOBLE TOQUE */
     #zona-secreta {
       position: fixed;
       top: 0;
@@ -138,10 +153,70 @@
     let ticking = false;
     let lastTouchX = 0, lastTouchY = 0;
     let rotacionActual = '0deg';
+    let animandoAgitamiento = false;
+
+    // --- SOLICITUD DE PERMISOS DE SENSORES EN IOS ---
+    function activarSensoresMovimiento() {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission()
+          .then(permissionState => {
+            if (permissionState === 'granted') {
+              window.addEventListener('devicemotion', detectarAgitamiento);
+            }
+          })
+          .catch(console.error);
+      } else {
+        window.addEventListener('devicemotion', detectarAgitamiento);
+      }
+    }
+
+    // --- DETECCIÓN DE AGITAMIENTO (SHAKE) ---
+    let ultimaX = 0, ultimaY = 0, ultimaZ = 0;
+    let umbralAgitamiento = 20; // Sensibilidad de la sacudida
+
+    function detectarAgitamiento(event) {
+      if (carta.style.display === 'none' || animandoAgitamiento) return;
+
+      const acc = event.accelerationIncludingGravity;
+      if (!acc) return;
+
+      const deltaX = Math.abs(acc.x - ultimaX);
+      const deltaY = Math.abs(acc.y - ultimaY);
+      const deltaZ = Math.abs(acc.z - ultimaZ);
+
+      if (deltaX + deltaY + deltaZ > umbralAgitamiento) {
+        ejecutarEfectoTemblor();
+      }
+
+      ultimaX = acc.x;
+      ultimaY = acc.y;
+      ultimaZ = acc.z;
+    }
+
+    function ejecutarEfectoTemblor() {
+      animandoAgitamiento = true;
+      carta.style.setProperty('--rotacion-base', rotacionActual);
+      carta.classList.add('animar-temblor');
+
+      // Después de agitarse 300ms, se desvanece
+      setTimeout(() => {
+        carta.style.transition = 'opacity 0.25s ease-out';
+        carta.style.opacity = '0';
+
+        setTimeout(() => {
+          carta.style.display = 'none';
+          carta.classList.remove('animar-temblor');
+          carta.style.transition = 'none';
+          animandoAgitamiento = false;
+        }, 250);
+      }, 300);
+    }
 
     botones.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        activarSensoresMovimiento();
+
         const nuevaImagen = btn.getAttribute('data-imagen');
         const nuevoFiltro = btn.getAttribute('data-filter');
         rotacionActual = btn.getAttribute('data-rotate') || '0deg';
@@ -163,7 +238,6 @@
 
     let ultimoToqueArriba = 0;
 
-    // Detección optimizada de doble toque
     zonaSecreta.addEventListener('touchstart', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -195,7 +269,7 @@
     }
 
     window.addEventListener('touchstart', (e) => {
-      if (capaMenu.style.display !== 'none' || e.target === zonaSecreta) return;
+      if (capaMenu.style.display !== 'none' || e.target === zonaSecreta || animandoAgitamiento) return;
 
       const touch = e.touches[0];
       lastTouchX = touch.clientX;
@@ -211,7 +285,7 @@
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
-      if (!isDragging) return;
+      if (!isDragging || animandoAgitamiento) return;
       e.preventDefault();
 
       const touch = e.touches[0];
@@ -245,7 +319,7 @@
     }, { passive: false });
 
     window.addEventListener('touchend', () => {
-      if (!isDragging) return;
+      if (!isDragging || animandoAgitamiento) return;
 
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
