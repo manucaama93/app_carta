@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <!-- Agregamos viewport-fit=cover para forzar pantalla completa sin bordes -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,7 +18,6 @@
       -webkit-user-select: none;
     }
 
-    /* AJUSTE PARA EVITAR EL RECORTE INFERIOR */
     html, body {
       width: 100%;
       height: 100%;
@@ -27,21 +27,22 @@
       background-color: #000;
     }
 
-    body {
+    /* CONTENEDOR DE FONDO A PANTALLA COMPLETA ABSOLUTA */
+    #capa-fondo {
       position: fixed;
+      /* Los valores negativos y env() obligan a la WebApp a invadir los bordes de la pantalla de iOS */
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      height: -webkit-fill-available;
       background-image: url('fondo.png?v=2');
-      /* Alineamos arriba al centro para que encaje 1:1 con la captura original */
       background-position: center top;
-      background-size: 100% 100%; /* Forzamos a que cubra exactamente el viewport */
+      background-size: cover;
       background-repeat: no-repeat;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      z-index: 1;
     }
 
     #carta {
@@ -56,6 +57,7 @@
       -webkit-user-select: none;
       pointer-events: auto;
       display: none;
+      z-index: 10;
     }
 
     /* ZONA SECRETA DE DOBLE TOQUE (Superior) */
@@ -117,6 +119,9 @@
   </style>
 </head>
 <body>
+
+  <!-- Capa independiente para forzar el fondo de pantalla completo en iOS -->
+  <div id="capa-fondo"></div>
 
   <div id="zona-secreta"></div>
 
