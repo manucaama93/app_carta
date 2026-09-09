@@ -54,17 +54,17 @@
 
     /* ANIMACIÓN DE TEMBLOR (SHAKE) */
     @keyframes temblor {
-      0% { transform: translate3d(0, 0, 0) rotate(var(--rotacion-base, 0deg)); }
-      15% { transform: translate3d(-12px, 8px, 0) rotate(calc(var(--rotacion-base, 0deg) - 8deg)); }
-      30% { transform: translate3d(12px, -8px, 0) rotate(calc(var(--rotacion-base, 0deg) + 8deg)); }
-      45% { transform: translate3d(-10px, -6px, 0) rotate(calc(var(--rotacion-base, 0deg) - 5deg)); }
-      60% { transform: translate3d(10px, 6px, 0) rotate(calc(var(--rotacion-base, 0deg) + 5deg)); }
-      75% { transform: translate3d(-5px, 3px, 0) rotate(calc(var(--rotacion-base, 0deg) - 2deg)); }
-      100% { transform: translate3d(0, 0, 0) rotate(var(--rotacion-base, 0deg)); }
+      0% { transform: translate3d(var(--pos-x, 0px), var(--pos-y, 0px), 0) rotate(var(--rotacion-base, 0deg)); }
+      15% { transform: translate3d(calc(var(--pos-x, 0px) - 12px), calc(var(--pos-y, 0px) + 8px), 0) rotate(calc(var(--rotacion-base, 0deg) - 8deg)); }
+      30% { transform: translate3d(calc(var(--pos-x, 0px) + 12px), calc(var(--pos-y, 0px) - 8px), 0) rotate(calc(var(--rotacion-base, 0deg) + 8deg)); }
+      45% { transform: translate3d(calc(var(--pos-x, 0px) - 10px), calc(var(--pos-y, 0px) - 6px), 0) rotate(calc(var(--rotacion-base, 0deg) - 5deg)); }
+      60% { transform: translate3d(calc(var(--pos-x, 0px) + 10px), calc(var(--pos-y, 0px) + 6px), 0) rotate(calc(var(--rotacion-base, 0deg) + 5deg)); }
+      75% { transform: translate3d(calc(var(--pos-x, 0px) - 5px), calc(var(--pos-y, 0px) + 3px), 0) rotate(calc(var(--rotacion-base, 0deg) - 2deg)); }
+      100% { transform: translate3d(var(--pos-x, 0px), var(--pos-y, 0px), 0) rotate(var(--rotacion-base, 0deg)); }
     }
 
     .animar-temblor {
-      animation: temblor 0.4s ease-in-out infinite;
+      animation: temblor 0.4s ease-in-out;
     }
 
     /* ZONA SECRETA DE DOBLE TOQUE */
@@ -155,7 +155,6 @@
     let rotacionActual = '0deg';
     let animandoAgitamiento = false;
 
-    // --- SOLICITUD DE PERMISOS DE SENSORES EN IOS ---
     function activarSensoresMovimiento() {
       if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         DeviceMotionEvent.requestPermission()
@@ -170,9 +169,8 @@
       }
     }
 
-    // --- DETECCIÓN DE AGITAMIENTO (SHAKE) ---
     let ultimaX = 0, ultimaY = 0, ultimaZ = 0;
-    let umbralAgitamiento = 20; // Sensibilidad de la sacudida
+    let umbralAgitamiento = 20;
 
     function detectarAgitamiento(event) {
       if (carta.style.display === 'none' || animandoAgitamiento) return;
@@ -194,22 +192,19 @@
     }
 
     function ejecutarEfectoTemblor() {
+      if (animandoAgitamiento) return;
+
       animandoAgitamiento = true;
       carta.style.setProperty('--rotacion-base', rotacionActual);
+      carta.style.setProperty('--pos-x', `${currentX}px`);
+      carta.style.setProperty('--pos-y', `${currentY}px`);
       carta.classList.add('animar-temblor');
 
-      // Después de agitarse 300ms, se desvanece
       setTimeout(() => {
-        carta.style.transition = 'opacity 0.25s ease-out';
-        carta.style.opacity = '0';
-
-        setTimeout(() => {
-          carta.style.display = 'none';
-          carta.classList.remove('animar-temblor');
-          carta.style.transition = 'none';
-          animandoAgitamiento = false;
-        }, 250);
-      }, 300);
+        carta.classList.remove('animar-temblor');
+        carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${rotacionActual})`;
+        animandoAgitamiento = false;
+      }, 400);
     }
 
     botones.forEach(btn => {
