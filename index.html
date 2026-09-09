@@ -27,18 +27,21 @@
       background-color: #000;
     }
 
-    /* Contenedor fijado a las 4 esquinas reales del viewport (incluye safe areas) */
+    /* Fijado a la resolución CSS exacta del iPhone 12 (390 x 844 pt) */
     #bg-wrap {
       position: fixed;
-      inset: 0;               /* equivale a top/right/bottom/left: 0 sin fijar width/height */
+      top: 0;
+      left: 0;
+      width: 390px;
+      height: 844px;
       overflow: hidden;
       z-index: 1;
       pointer-events: none;
     }
 
     #img-fondo {
-      width: 100%;
-      height: 100%;
+      width: 390px;
+      height: 844px;
       object-fit: cover;
       display: block;
     }
@@ -120,7 +123,7 @@
 
   <!-- Imagen de fondo que calza directamente con la captura del iPhone -->
   <div id="bg-wrap">
-    <img id="img-fondo" src="fondo.png?v=3" alt="Fondo">
+    <img id="img-fondo" src="fondo.png?v=4" alt="Fondo">
   </div>
 
   <div id="zona-secreta"></div>
