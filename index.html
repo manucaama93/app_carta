@@ -20,21 +20,22 @@
 
     html, body {
       width: 100vw;
-      height: 100dvh;
+      height: 100%;
       margin: 0;
       padding: 0;
       overflow: hidden;
       background-color: #000;
     }
 
-    /* Ocupa el 100% real del panel del iPhone incluyendo la franja del gesto inferior */
+    /* Imagen empujada exactamente medio cm más hacia abajo para completar el Dock */
     #img-fondo {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
-      height: calc(100vh + env(safe-area-inset-bottom, 40px));
+      height: calc(100vh + env(safe-area-inset-bottom, 34px) + 12px);
       object-fit: fill;
+      object-position: top center;
       z-index: 1;
       pointer-events: none;
     }
