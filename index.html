@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <!-- Status bar translúcida para que la imagen ocupe el notch/reloj sin bordes -->
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>TV</title>
 
@@ -24,10 +23,10 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #000;
+      /* Mismo tono azul oscuro del fondo para mimetizar la zona inferior */
+      background-color: #0a0f1d;
     }
 
-    /* Ajuste directo 1:1 fijado a las 4 esquinas de la pantalla */
     #img-fondo {
       position: fixed;
       top: 0;
@@ -116,7 +115,6 @@
 </head>
 <body>
 
-  <!-- Imagen de fondo que calza directamente con la captura del iPhone -->
   <img id="img-fondo" src="fondo.png?v=2" alt="Fondo">
 
   <div id="zona-secreta"></div>
