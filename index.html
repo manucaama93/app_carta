@@ -26,17 +26,18 @@
       background-color: #000;
     }
 
-    /* CAPA DE FONDO ALINEADA CON EL ÁREA SEGURA DE IOS */
+    /* CAPA DE FONDO ESCALADA PARA CUBRIR BORDES SUPERIOR E INFERIOR */
     #img-fondo {
       position: fixed;
-      top: -12px; /* Ajuste preciso para alinear con el reloj/status bar */
+      top: 0;
       left: 0;
       width: 100vw;
-      height: calc(100vh + 12px - env(safe-area-inset-bottom, 0px));
+      height: 100vh;
       background-image: url('fondo.png?v=2');
-      background-position: center top;
-      background-size: 100% 100%;
+      background-position: center center;
+      background-size: cover;
       background-repeat: no-repeat;
+      transform: scale(1.05) translateY(-8px);
       z-index: 1;
       pointer-events: none;
     }
@@ -116,7 +117,6 @@
 </head>
 <body>
 
-  <!-- Capa de fondo estructurada como DIV para un ajuste exacto del alto -->
   <div id="img-fondo"></div>
 
   <div id="zona-secreta"></div>
