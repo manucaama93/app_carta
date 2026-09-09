@@ -52,39 +52,7 @@
       z-index: 10;
     }
 
-    /* ANIMACIÓN BASADA EN TUS 4 IMÁGENES DE MUESTRA */
-    @keyframes caidaRebote {
-      /* 1. Posición inicial (Incio del despliegue en diagonal desde la derecha) */
-      0% {
-        transform: translate3d(20vw, 35vh, 0) rotate(var(--rotacion-base, 0deg));
-        opacity: 0;
-      }
-      10% {
-        opacity: 1;
-      }
-      /* 2. Impacto con la pared izquierda (carta2.jpg) */
-      40% {
-        transform: translate3d(-30px, 60vh, 0) rotate(calc(var(--rotacion-base, 0deg) - 4deg));
-      }
-      /* 3. Caída hasta el fondo inferior izquierdo (carta3.jpg) */
-      75% {
-        transform: translate3d(10px, calc(100vh - 360px), 0) rotate(var(--rotacion-base, 0deg));
-      }
-      /* 4. Rebote leve hacia arriba (efecto rebote suelo) */
-      88% {
-        transform: translate3d(15px, calc(100vh - 390px), 0) rotate(var(--rotacion-base, 0deg));
-      }
-      /* 5. Asentamiento final en la base (carta4.jpg) */
-      100% {
-        transform: translate3d(10px, calc(100vh - 360px), 0) rotate(var(--rotacion-base, 0deg));
-      }
-    }
-
-    .animar-caida {
-      animation: caidaRebote 0.75s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-    }
-
-    /* ZONA SECRETA DE DOBLE TOQUE */
+    /* ZONA SECRETA DE DOBLE TOQUE (Ampliada a 110px de alto) */
     #zona-secreta {
       position: fixed;
       top: 0;
@@ -170,72 +138,10 @@
     let ticking = false;
     let lastTouchX = 0, lastTouchY = 0;
     let rotacionActual = '0deg';
-    let enAnimacion = false;
 
-    // --- DETECCIÓN DE SHAKE / SACUDIÓN ---
-    function activarSensoresMovimiento() {
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission()
-          .then(permissionState => {
-            if (permissionState === 'granted') {
-              window.addEventListener('devicemotion', detectarAgitamiento);
-            }
-          })
-          .catch(console.error);
-      } else {
-        window.addEventListener('devicemotion', detectarAgitamiento);
-      }
-    }
-
-    let ultimaX = 0, ultimaY = 0, ultimaZ = 0;
-    let umbralAgitamiento = 22;
-
-    function detectarAgitamiento(event) {
-      if (enAnimacion || isDragging) return;
-
-      const acc = event.accelerationIncludingGravity;
-      if (!acc) return;
-
-      const deltaX = Math.abs(acc.x - ultimaX);
-      const deltaY = Math.abs(acc.y - ultimaY);
-      const deltaZ = Math.abs(acc.z - ultimaZ);
-
-      // Sacudida de arriba a abajo principal
-      if (deltaY > 15 || (deltaX + deltaY + deltaZ > umbralAgitamiento)) {
-        ejecutarAnimacionDiagonal();
-      }
-
-      ultimaX = acc.x;
-      ultimaY = acc.y;
-      ultimaZ = acc.z;
-    }
-
-    function ejecutarAnimacionDiagonal() {
-      enAnimacion = true;
-      carta.style.display = 'block';
-      carta.style.setProperty('--rotacion-base', rotacionActual);
-      carta.classList.remove('animar-caida');
-      
-      // Forzar reflow para reiniciar la animación
-      void carta.offsetWidth;
-      carta.classList.add('animar-caida');
-
-      // Al finalizar la animación, fijar las coordenadas donde reposó la carta
-      setTimeout(() => {
-        carta.classList.remove('animar-caida');
-        currentX = 10;
-        currentY = window.innerHeight - 360;
-        carta.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${rotacionActual})`;
-        enAnimacion = false;
-      }, 750);
-    }
-
-    // --- SELECCIÓN EN EL MENÚ ---
     botones.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        activarSensoresMovimiento();
-
         const nuevaImagen = btn.getAttribute('data-imagen');
         const nuevoFiltro = btn.getAttribute('data-filter');
         rotacionActual = btn.getAttribute('data-rotate') || '0deg';
@@ -245,16 +151,19 @@
 
         currentX = 0;
         currentY = 0;
+        startX = 0;
+        startY = 0;
         carta.style.transform = `translate3d(0px, 0px, 0) rotate(${rotacionActual})`;
 
-        carta.style.display = 'none'; // Espera a la sacudida para salir
+        carta.style.display = 'block';
+        carta.style.opacity = '1';
         capaMenu.style.display = 'none';
       });
     });
 
-    // --- DOBLE TOQUE SUPERIOR (ZONA SECRETA) ---
     let ultimoToqueArriba = 0;
 
+    // Detección optimizada de doble toque
     zonaSecreta.addEventListener('touchstart', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -285,9 +194,8 @@
       isDragging = false;
     }
 
-    // --- ARRASTRE TÁCTIL (POST-ANIMACIÓN) ---
     window.addEventListener('touchstart', (e) => {
-      if (capaMenu.style.display !== 'none' || e.target === zonaSecreta || enAnimacion) return;
+      if (capaMenu.style.display !== 'none' || e.target === zonaSecreta) return;
 
       const touch = e.touches[0];
       lastTouchX = touch.clientX;
@@ -303,7 +211,7 @@
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
-      if (!isDragging || enAnimacion) return;
+      if (!isDragging) return;
       e.preventDefault();
 
       const touch = e.touches[0];
@@ -337,7 +245,7 @@
     }, { passive: false });
 
     window.addEventListener('touchend', () => {
-      if (!isDragging || enAnimacion) return;
+      if (!isDragging) return;
 
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
